@@ -1,0 +1,33 @@
+# Dependências do node
+/node_modules
+
+# Saídas do build
+/dist
+/build
+
+# Configurações de ambiente
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Dados temporários
+/tmp
+/temp
+
+# Configurações do Editor/IDE
+.vscode/
+
+
+# Configurações do Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Test coverage
+/coverage
+
+# Ignore outras saídas específicas de testes ou builds
+/coverage/

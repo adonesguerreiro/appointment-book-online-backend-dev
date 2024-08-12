@@ -1,0 +1,134 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int               @id @default(autoincrement())
+  name           String            @db.VarChar(255)
+  email          String            @unique @db.VarChar(255)
+  password       String            @db.VarChar(255)
+  specialty      String?           @db.VarChar(255)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  company        Company?          @relation(fields: [companyId], references: [id])
+  companyId      Int?
+}
+
+model Company {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  mobile    String    @unique @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  cnpj      String    @unique @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  users     User[]
+  services  Service[]
+  addresses Address[]
+  schedules Schedule[]
+  customers Customer[]
+  avaliabletimes AvaliableTime[]
+  unavaliabletimes UnavailableTime[]
+}
+
+model Address {
+  id           Int      @id @default(autoincrement())
+  street       String   @db.VarChar(255)
+  number       String   @db.VarChar(255)
+  complement   String?  @db.VarChar(255)
+  neighborhood String   @db.VarChar(255)
+  city         String   @db.VarChar(255)
+  state        String   @db.VarChar(255)
+  postalCode   String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  company      Company  @relation(fields: [companyId], references: [id])
+  companyId    Int      @unique
+}
+
+model Service {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(255)
+  duration  String     @db.VarChar(255)
+  price     Decimal    @db.Decimal(10, 2)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  company   Company    @relation(fields: [companyId], references: [id])
+  companyId Int
+  schedules Schedule[]
+}
+
+model Schedule {
+  id         Int            @id @default(autoincrement())
+  date       DateTime
+  status     ScheduleStatus @default(SCHEDULED)
+  customer   Customer       @relation(fields: [customerId], references: [id])
+  customerId Int
+  service    Service        @relation(fields: [serviceId], references: [id])
+  serviceId  Int
+  company    Company        @relation(fields: [companyId], references: [id])
+  companyId  Int
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  CANCELLED
+  ATTENDED
+}
+
+model Customer {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(255)
+  mobile    String     @db.VarChar(255)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  schedules Schedule[]
+  company   Company    @relation(fields: [companyId], references: [id])
+  companyId Int
+}
+
+enum DayWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+model AvaliableTime {
+  id        Int      @id @default(autoincrement())
+  day       DayWeek?
+  startTime String   @db.VarChar(255)
+  endTime   String   @db.VarChar(255)
+  interval  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id])
+  companyId Int
+}
+
+model UnavailableTime {
+  id        Int       @id @default(autoincrement())
+  date      DateTime?
+  startTime String    @db.VarChar(255)
+  endTime   String    @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  company   Company   @relation(fields: [companyId], references: [id])
+  companyId Int
+}
