@@ -1,17 +1,24 @@
+import { AddressData } from "./interfaces/AddressData";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { userSchema } from "./schemas/userSchema";
 import * as yup from "yup";
 import { ErrorResponse } from "./interfaces/ErrorResponse";
+import { userSchema } from "./schemas/userSchema";
 import { companySchema } from "./schemas/companySchema";
 import { addressSchema } from "./schemas/addressSchema";
 import { serviceSchema } from "./schemas/serviceSchema";
 import { customerSchema } from "./schemas/customerSchema";
 import { avaliableSchema } from "./schemas/avaliableSchema";
 import { unavaliableSchema } from "./schemas/unavaliableSchema";
+import { UserData } from "./interfaces/UserData";
+import { CompanyData } from "./interfaces/CompanyData";
+import { ServiceData } from "./interfaces/ServiceData";
+import { CustomerData } from "./interfaces/CustomerData";
+import { AvaliableData } from "./interfaces/AvaliableData";
+import { UnavaliableData } from "./interfaces/UnavaliableData";
 
 dotenv.config();
 
@@ -55,7 +62,11 @@ app.get("/users/:id", async (req: Request, res: Response) => {
 	res.send(userId);
 });
 
-app.post("/users", async (req: Request, res: Response) => {
+interface UserRequest extends Request {
+	body: UserData;
+}
+
+app.post("/users", async (req: UserRequest, res: Response) => {
 	const { name, email, password, specialty, companyId } = req.body;
 	const passwordHash = await bcrypt.hash(password, 10);
 
@@ -93,7 +104,7 @@ app.post("/users", async (req: Request, res: Response) => {
 	}
 });
 
-app.put("/users/:id", async (req: Request, res: Response) => {
+app.put("/users/:id", async (req: UserRequest, res: Response) => {
 	const { id } = req.params;
 	const { name, email, password, specialty, companyId } = req.body;
 	const passwordHash = await bcrypt.hash(password, 10);
@@ -149,6 +160,10 @@ app.delete("/users/:id", async (req: Request, res: Response) => {
 	res.send(userDeleted);
 });
 
+interface CompanyRequest extends Request {
+	body: CompanyData;
+}
+
 app.get("/companies", async (req: Request, res: Response) => {
 	const page = parseInt(req.query.page as string) || 1;
 	const limit = parseInt(req.query.limit as string) || 10;
@@ -174,7 +189,7 @@ app.get("/companies/:id", async (req: Request, res: Response) => {
 	res.send(companyId);
 });
 
-app.post("/companies", async (req: Request, res: Response) => {
+app.post("/companies", async (req: CompanyRequest, res: Response) => {
 	const { name, mobile, email, cnpj } = req.body;
 
 	try {
@@ -227,7 +242,7 @@ app.post("/companies", async (req: Request, res: Response) => {
 	}
 });
 
-app.put("/companies/:id", async (req: Request, res: Response) => {
+app.put("/companies/:id", async (req: CompanyRequest, res: Response) => {
 	const { id } = req.params;
 	const { name, mobile, email, cnpj } = req.body;
 
@@ -334,7 +349,11 @@ app.get("/addresses/:id", async (req: Request, res: Response) => {
 	res.send(addressId);
 });
 
-app.post("/addresses", async (req: Request, res: Response) => {
+interface AddressRequest extends Request {
+	body: AddressData;
+}
+
+app.post("/addresses", async (req: AddressRequest, res: Response) => {
 	const {
 		street,
 		number,
@@ -437,7 +456,7 @@ app.post("/addresses", async (req: Request, res: Response) => {
 	}
 });
 
-app.put("/addresses/:id", async (req: Request, res: Response) => {
+app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 	const { id } = req.params;
 	const {
 		street,
@@ -589,7 +608,11 @@ app.get("/services/:id", async (req: Request, res: Response) => {
 	res.send(serviceId);
 });
 
-app.post("/services", async (req: Request, res: Response) => {
+interface ServiceRequest extends Request {
+	body: ServiceData;
+}
+
+app.post("/services", async (req: ServiceRequest, res: Response) => {
 	const { name, duration, price, companyId } = req.body;
 
 	try {
@@ -629,7 +652,7 @@ app.post("/services", async (req: Request, res: Response) => {
 	}
 });
 
-app.put("/services/:id", async (req: Request, res: Response) => {
+app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 	const { id } = req.params;
 	const { name, duration, price, companyId } = req.body;
 
@@ -718,7 +741,11 @@ app.get("/customers/:id", async (req: Request, res: Response) => {
 	res.send(customerId);
 });
 
-app.post("/customers", async (req: Request, res: Response) => {
+interface CustomerRequest extends Request {
+	body: CustomerData;
+}
+
+app.post("/customers", async (req: CustomerRequest, res: Response) => {
 	const { name, mobile, companyId } = req.body;
 
 	try {
@@ -756,7 +783,7 @@ app.post("/customers", async (req: Request, res: Response) => {
 	}
 });
 
-app.put("/customers/:id", async (req: Request, res: Response) => {
+app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 	const { id } = req.params;
 	const { name, mobile, companyId } = req.body;
 
@@ -852,7 +879,11 @@ app.get("/avaliable-times/:id", async (req: Request, res: Response) => {
 	res.send(avaliableTimeId);
 });
 
-app.post("/avaliable-times", async (req: Request, res: Response) => {
+interface AvaliableRequest extends Request {
+	body: AvaliableData;
+}
+
+app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 	const { day, startTime, endTime, interval, companyId } = req.body;
 
 	try {
@@ -891,53 +922,56 @@ app.post("/avaliable-times", async (req: Request, res: Response) => {
 	}
 });
 
-app.put("/avaliable-times/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const { day, startTime, endTime, interval, companyId } = req.body;
+app.put(
+	"/avaliable-times/:id",
+	async (req: AvaliableRequest, res: Response) => {
+		const { id } = req.params;
+		const { day, startTime, endTime, interval, companyId } = req.body;
 
-	try {
-		await avaliableSchema.validate(req.body, { abortEarly: false });
+		try {
+			await avaliableSchema.validate(req.body, { abortEarly: false });
 
-		const avaliableTimeId = await prisma.avaliableTime.findUnique({
-			where: { id: parseInt(id) },
-		});
+			const avaliableTimeId = await prisma.avaliableTime.findUnique({
+				where: { id: parseInt(id) },
+			});
 
-		if (!avaliableTimeId)
-			return res.status(400).send({ error: "Available time not found" });
+			if (!avaliableTimeId)
+				return res.status(400).send({ error: "Available time not found" });
 
-		const existingDay = await prisma.avaliableTime.findFirst({
-			where: {
-				day,
-			},
-		});
-		if (existingDay?.day && existingDay.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Day already in use" }],
-			};
+			const existingDay = await prisma.avaliableTime.findFirst({
+				where: {
+					day,
+				},
+			});
+			if (existingDay?.day && existingDay.companyId) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Day already in use" }],
+				};
 
-			return res.status(400).json(errorResponse);
-		}
+				return res.status(400).json(errorResponse);
+			}
 
-		const avaliableUpdated = await prisma.avaliableTime.update({
-			where: { id: parseInt(id) },
-			data: { startTime, endTime, interval, companyId },
-		});
+			const avaliableUpdated = await prisma.avaliableTime.update({
+				where: { id: parseInt(id) },
+				data: { startTime, endTime, interval, companyId },
+			});
 
-		res.send(avaliableUpdated);
-	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
+			res.send(avaliableUpdated);
+		} catch (err) {
+			if (err instanceof yup.ValidationError) {
+				const errorResponse: ErrorResponse = {
+					errors: err.inner.map((error) => ({
+						path: error.path,
+						message: error.message,
+					})),
+				};
+				return res.status(400).json(errorResponse);
+			} else {
+				res.status(500).json({ message: "Internal server error" });
+			}
 		}
 	}
-});
+);
 
 app.delete("/avalible-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -981,94 +1015,104 @@ app.get("/unavailable-times/:id", async (req: Request, res: Response) => {
 	res.send(unavailableTimeId);
 });
 
-app.post("/unavailable-times", async (req: Request, res: Response) => {
-	const { date, startTime, endTime, companyId } = req.body;
+interface UnavaliableRequest extends Request {
+	body: UnavaliableData;
+}
 
-	try {
-		await unavaliableSchema.validate(req.body, { abortEarly: false });
+app.post(
+	"/unavailable-times",
+	async (req: UnavaliableRequest, res: Response) => {
+		const { date, startTime, endTime, companyId } = req.body;
 
-		const existingDate = await prisma.unavailableTime.findFirst({
-			where: {
-				date,
-			},
-		});
+		try {
+			await unavaliableSchema.validate(req.body, { abortEarly: false });
 
-		if (existingDate?.date && existingDate.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Date already in use" }],
-			};
+			const existingDate = await prisma.unavailableTime.findFirst({
+				where: {
+					date,
+				},
+			});
 
-			return res.status(400).json(errorResponse);
-		}
+			if (existingDate?.date && existingDate.companyId) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Date already in use" }],
+				};
 
-		const unavailableTimeCreated = await prisma.unavailableTime.create({
-			data: { date, startTime, endTime, companyId },
-		});
+				return res.status(400).json(errorResponse);
+			}
 
-		res.send(unavailableTimeCreated);
-	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
-	}
-});
+			const unavailableTimeCreated = await prisma.unavailableTime.create({
+				data: { date, startTime, endTime, companyId },
+			});
 
-app.put("/unavailable-times/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const { date, startTime, endTime, companyId } = req.body;
-
-	try {
-		await unavaliableSchema.validate(req.body, { abortEarly: false });
-
-		const unavailableTimeId = await prisma.unavailableTime.findUnique({
-			where: { id: parseInt(id) },
-		});
-
-		if (!unavailableTimeId)
-			return res.status(400).send({ error: "Unavaliable time not found" });
-
-		const existingDate = await prisma.unavailableTime.findFirst({
-			where: {
-				date,
-			},
-		});
-
-		if (existingDate?.date && existingDate.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Date already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const unavailableUpdated = await prisma.unavailableTime.update({
-			where: { id: parseInt(id) },
-			data: { startTime, endTime, companyId },
-		});
-
-		res.send(unavailableUpdated);
-	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
+			res.send(unavailableTimeCreated);
+		} catch (err) {
+			if (err instanceof yup.ValidationError) {
+				const errorResponse: ErrorResponse = {
+					errors: err.inner.map((error) => ({
+						path: error.path,
+						message: error.message,
+					})),
+				};
+				return res.status(400).json(errorResponse);
+			} else {
+				res.status(500).json({ message: "Internal server error" });
+			}
 		}
 	}
-});
+);
+
+app.put(
+	"/unavailable-times/:id",
+	async (req: UnavaliableRequest, res: Response) => {
+		const { id } = req.params;
+		const { date, startTime, endTime, companyId } = req.body;
+
+		try {
+			await unavaliableSchema.validate(req.body, { abortEarly: false });
+
+			const unavailableTimeId = await prisma.unavailableTime.findUnique({
+				where: { id: parseInt(id) },
+			});
+
+			if (!unavailableTimeId)
+				return res.status(400).send({ error: "Unavaliable time not found" });
+
+			const existingDate = await prisma.unavailableTime.findFirst({
+				where: {
+					date,
+				},
+			});
+
+			if (existingDate?.date && existingDate.companyId) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Date already in use" }],
+				};
+
+				return res.status(400).json(errorResponse);
+			}
+
+			const unavailableUpdated = await prisma.unavailableTime.update({
+				where: { id: parseInt(id) },
+				data: { startTime, endTime, companyId },
+			});
+
+			res.send(unavailableUpdated);
+		} catch (err) {
+			if (err instanceof yup.ValidationError) {
+				const errorResponse: ErrorResponse = {
+					errors: err.inner.map((error) => ({
+						path: error.path,
+						message: error.message,
+					})),
+				};
+				return res.status(400).json(errorResponse);
+			} else {
+				res.status(500).json({ message: "Internal server error" });
+			}
+		}
+	}
+);
 
 app.delete("/unavailable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
