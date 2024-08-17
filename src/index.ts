@@ -19,6 +19,11 @@ import { ServiceData } from "./interfaces/ServiceData";
 import { CustomerData } from "./interfaces/CustomerData";
 import { AvaliableData } from "./interfaces/AvaliableData";
 import { UnavaliableData } from "./interfaces/UnavaliableData";
+import jwt from "jsonwebtoken";
+import { authConfig } from "./config/auth";
+import auth from "./middlewares/auth";
+import { SessionData } from "./interfaces/SessionData";
+import { sessionSchema } from "./schemas/sessionSchema";
 
 dotenv.config();
 
@@ -36,6 +41,70 @@ app.get("/", (req: Request, res: Response) => {
 
 	res.send({ message });
 });
+
+interface SessionRequest extends Request {
+	body: SessionData;
+}
+
+app.post("/sessions", async (req: SessionRequest, res: Response) => {
+	const { email, password } = req.body;
+
+	try {
+		await sessionSchema.validate(req.body, { abortEarly: false });
+
+		const existingUser = await prisma.user.findUnique({
+			where: { email },
+		});
+
+		if (!existingUser) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "User not found." }],
+			};
+			return res.status(401).json(errorResponse);
+		}
+
+		const isPasswordValid = await bcrypt.compare(
+			password,
+			existingUser.password
+		);
+
+		if (!isPasswordValid) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Invalid password" }],
+			};
+			return res.status(401).json(errorResponse);
+		}
+
+		const { id, name } = existingUser;
+
+		return res.json({
+			existingUser: id,
+			name,
+			email,
+			token: jwt.sign({ id }, authConfig.secret, {
+				expiresIn: authConfig.expiresIn,
+			}),
+		});
+	} catch (err) {
+		if (err instanceof yup.ValidationError) {
+			const errorResponse: ErrorResponse = {
+				errors: err.inner.map((error) => ({
+					path: error.path,
+					message: error.message,
+				})),
+			};
+			return res.status(400).json(errorResponse);
+		} else {
+			res.status(500).json({ message: "Internal server error" });
+		}
+	}
+});
+
+app.use(auth);
+
+interface UserRequest extends Request {
+	body: UserData;
+}
 
 app.get("/users", async (req: Request, res: Response) => {
 	const page = parseInt(req.query.page as string) || 1;
@@ -61,10 +130,6 @@ app.get("/users/:id", async (req: Request, res: Response) => {
 
 	res.send(userId);
 });
-
-interface UserRequest extends Request {
-	body: UserData;
-}
 
 app.post("/users", async (req: UserRequest, res: Response) => {
 	const { name, email, password, specialty, companyId } = req.body;
