@@ -100,36 +100,9 @@ app.post("/sessions", async (req: SessionRequest, res: Response) => {
 	}
 });
 
-app.use(auth);
-
 interface UserRequest extends Request {
 	body: UserData;
 }
-
-app.get("/users", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
-
-	const users = await prisma.user.findMany({
-		skip: skip,
-		take: limit,
-	});
-
-	res.send(users);
-});
-
-app.get("/users/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const userId = await prisma.user.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!userId) return res.status(400).send({ error: "User not found" });
-
-	res.send(userId);
-});
 
 app.post("/users", async (req: UserRequest, res: Response) => {
 	const { name, email, password, specialty, companyId } = req.body;
@@ -169,31 +142,82 @@ app.post("/users", async (req: UserRequest, res: Response) => {
 	}
 });
 
+app.use(auth);
+
+app.get("/users", async (req: Request, res: Response) => {
+	const page = parseInt(req.query.page as string) || 1;
+	const limit = parseInt(req.query.limit as string) || 10;
+	const skip = (page - 1) * limit;
+
+	const users = await prisma.user.findMany({
+		skip: skip,
+		take: limit,
+	});
+
+	res.send(users);
+});
+
+app.get("/users/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
+
+	const userId = await prisma.user.findUnique({
+		where: { id: parseInt(id) },
+	});
+
+	if (!userId) return res.status(400).send({ error: "User not found" });
+
+	res.send(userId);
+});
+
 app.put("/users/:id", async (req: UserRequest, res: Response) => {
 	const { id } = req.params;
-	const { name, email, password, specialty, companyId } = req.body;
-	const passwordHash = await bcrypt.hash(password, 10);
+	const { name, email, password, newPassword, specialty, companyId } = req.body;
 
 	try {
 		await userSchema.validate(req.body, { abortEarly: false });
 
-		const existingUser = await prisma.user.findFirst({
-			where: { email },
+		const existingUser = await prisma.user.findUnique({
+			where: { id: parseInt(id) },
 		});
 
-		if (existingUser) {
+		if (email === existingUser?.email) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email already in use" }],
+				errors: [{ message: "Email já está em uso" }],
 			};
 			return res.status(400).json(errorResponse);
 		}
 
+		if (newPassword) {
+			const passwordMatch = await bcrypt.compare(
+				password,
+				existingUser!.password
+			);
+
+			if (!passwordMatch) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Senha atual incorreta" }],
+				};
+				return res.status(400).json(errorResponse);
+			}
+
+			const newPasswordHash = await bcrypt.hash(newPassword, 10);
+			existingUser!.password = newPasswordHash;
+
+			const userUpdated = await prisma.user.update({
+				where: { id: parseInt(id) },
+				data: { name, email, password: newPasswordHash, specialty, companyId },
+			});
+
+			return res.send(userUpdated);
+		}
+
+		const passwordHash = await bcrypt.hash(password, 10);
 		const userUpdated = await prisma.user.update({
 			where: { id: parseInt(id) },
 			data: { name, email, password: passwordHash, specialty, companyId },
 		});
 
-		res.send(userUpdated);
+		return res.send(userUpdated);
 	} catch (err) {
 		if (err instanceof yup.ValidationError) {
 			const errorResponse: ErrorResponse = {
