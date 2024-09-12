@@ -1,4 +1,7 @@
-export interface AddressData {
+import { CompanyData } from "./CompanyData";
+
+export interface AddressData extends CompanyData {
+	id: number;
 	street: string;
 	number: string;
 	complement: string | null;

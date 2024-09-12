@@ -177,10 +177,13 @@ app.put("/users/:id", async (req: UserRequest, res: Response) => {
 		await userSchema.validate(req.body, { abortEarly: false });
 
 		const existingUser = await prisma.user.findUnique({
-			where: { id: parseInt(id) },
+			where: {
+				email,
+				NOT: { id: parseInt(id) },
+			},
 		});
 
-		if (email === existingUser?.email) {
+		if (email === existingUser?.email && !newPassword) {
 			const errorResponse: ErrorResponse = {
 				errors: [{ message: "Email já está em uso" }],
 			};
@@ -271,6 +274,9 @@ app.get("/companies/:id", async (req: Request, res: Response) => {
 
 	const companyId = await prisma.company.findUnique({
 		where: { id: parseInt(id) },
+		include: {
+			addresses: true,
+		},
 	});
 
 	if (!companyId) return res.status(400).send({ error: "Company not found" });
@@ -346,31 +352,31 @@ app.put("/companies/:id", async (req: CompanyRequest, res: Response) => {
 
 		const existingCompany = await prisma.company.findFirst({
 			where: {
-				mobile,
-				email,
-				cnpj,
+				OR: [{ mobile }, { email }, { cnpj }],
+				NOT: { id: parseInt(id) },
 			},
+			include: { addresses: true },
 		});
 
-		if (existingCompany?.mobile) {
+		if (existingCompany?.mobile === mobile) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
+				errors: [{ message: "Número de celular já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
 		}
 
-		if (existingCompany?.email) {
+		if (existingCompany?.email === email) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email already in use" }],
+				errors: [{ message: "Email já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
 		}
 
-		if (existingCompany?.cnpj) {
+		if (existingCompany?.cnpj === cnpj) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "CNPJ already in use" }],
+				errors: [{ message: "CNPJ já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
@@ -378,10 +384,16 @@ app.put("/companies/:id", async (req: CompanyRequest, res: Response) => {
 
 		const companyUpdated = await prisma.company.update({
 			where: { id: parseInt(id) },
-			data: { name, mobile, email, cnpj },
+			data: {
+				name,
+				mobile,
+				email,
+				cnpj,
+			},
+			include: { addresses: true },
 		});
 
-		res.send(companyUpdated);
+		res.send({ companyUpdated });
 	} catch (err) {
 		if (err instanceof yup.ValidationError) {
 			const errorResponse: ErrorResponse = {
@@ -566,65 +578,6 @@ app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 		});
 
 		if (!addressId) return res.status(400).send({ error: "Address not found" });
-
-		const existingAddress = await prisma.address.findFirst({
-			where: {
-				street,
-				number,
-				neighborhood,
-				city,
-				state,
-				postalCode,
-			},
-		});
-
-		if (existingAddress?.street && existingAddress?.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Street address already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.number && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.neighborhood && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Neighborhood already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.city && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "City already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.state && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "State already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.postalCode && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Postal code already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
 
 		const addressUpdated = await prisma.address.update({
 			where: { id: parseInt(id) },
