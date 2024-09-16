@@ -169,8 +169,8 @@ app.get("/users/:id", async (req: Request, res: Response) => {
 	res.send(userId);
 });
 
-app.put("/users/:id", async (req: UserRequest, res: Response) => {
-	const { id } = req.params;
+app.put("/users", async (req: UserRequest, res: Response) => {
+	const userId = req.userId;
 	const { name, email, password, newPassword, specialty, companyId } = req.body;
 
 	try {
@@ -179,7 +179,7 @@ app.put("/users/:id", async (req: UserRequest, res: Response) => {
 		const existingUser = await prisma.user.findUnique({
 			where: {
 				email,
-				NOT: { id: parseInt(id) },
+				NOT: { id: Number(userId) },
 			},
 		});
 
@@ -207,8 +207,14 @@ app.put("/users/:id", async (req: UserRequest, res: Response) => {
 			existingUser!.password = newPasswordHash;
 
 			const userUpdated = await prisma.user.update({
-				where: { id: parseInt(id) },
-				data: { name, email, password: newPasswordHash, specialty, companyId },
+				where: { id: Number(userId) },
+				data: {
+					name,
+					email,
+					password: newPasswordHash,
+					specialty,
+					companyId: Number(req.userId),
+				},
 			});
 
 			return res.send(userUpdated);
@@ -216,7 +222,7 @@ app.put("/users/:id", async (req: UserRequest, res: Response) => {
 
 		const passwordHash = await bcrypt.hash(password, 10);
 		const userUpdated = await prisma.user.update({
-			where: { id: parseInt(id) },
+			where: { id: Number(userId) },
 			data: { name, email, password: passwordHash, specialty, companyId },
 		});
 
@@ -337,15 +343,15 @@ app.post("/companies", async (req: CompanyRequest, res: Response) => {
 	}
 });
 
-app.put("/companies/:id", async (req: CompanyRequest, res: Response) => {
-	const { id } = req.params;
+app.put("/companies", async (req: CompanyRequest, res: Response) => {
+	const userId = req.userId;
 	const { name, mobile, email, cnpj } = req.body;
 
 	try {
 		await companySchema.validate(req.body, { abortEarly: false });
 
 		const companyId = await prisma.company.findUnique({
-			where: { id: parseInt(id) },
+			where: { id: Number(userId) },
 		});
 
 		if (!companyId) return res.status(400).send({ error: "Company not found" });
@@ -353,7 +359,7 @@ app.put("/companies/:id", async (req: CompanyRequest, res: Response) => {
 		const existingCompany = await prisma.company.findFirst({
 			where: {
 				OR: [{ mobile }, { email }, { cnpj }],
-				NOT: { id: parseInt(id) },
+				NOT: { id: Number(userId) },
 			},
 			include: { addresses: true },
 		});
@@ -383,7 +389,7 @@ app.put("/companies/:id", async (req: CompanyRequest, res: Response) => {
 		}
 
 		const companyUpdated = await prisma.company.update({
-			where: { id: parseInt(id) },
+			where: { id: Number(userId) },
 			data: {
 				name,
 				mobile,
@@ -559,6 +565,7 @@ app.post("/addresses", async (req: AddressRequest, res: Response) => {
 
 app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 	const { id } = req.params;
+
 	const {
 		street,
 		number,
@@ -625,12 +632,14 @@ app.delete("/addresses/:id", async (req: Request, res: Response) => {
 	res.send(addressDeleted);
 });
 
-app.get("/services", async (req: Request, res: Response) => {
+app.get("/services/company/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
 	const page = parseInt(req.query.page as string) || 1;
 	const limit = parseInt(req.query.limit as string) || 10;
 	const skip = (page - 1) * limit;
 
 	const services = await prisma.service.findMany({
+		where: { companyId: parseInt(id) },
 		skip: skip,
 		take: limit,
 	});
@@ -640,9 +649,10 @@ app.get("/services", async (req: Request, res: Response) => {
 
 app.get("/services/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
+	const userId = req.userId;
 
 	const serviceId = await prisma.service.findUnique({
-		where: { id: parseInt(id) },
+		where: { id: parseInt(id), companyId: Number(userId) },
 	});
 
 	if (!serviceId) return res.status(400).send({ error: "Service not found" });
@@ -663,19 +673,20 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 		const existingService = await prisma.service.findFirst({
 			where: {
 				name,
+				companyId,
 			},
 		});
 
-		if (existingService?.name && existingService.companyId) {
+		if (existingService?.name) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Service name already in use" }],
+				errors: [{ message: "Nome do serviço já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
 		}
 
 		const serviceCreated = await prisma.service.create({
-			data: { name, duration, price, companyId },
+			data: { name, duration, price, companyId: Number(req.userId) },
 		});
 
 		res.send(serviceCreated);
@@ -696,6 +707,7 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 
 app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 	const { id } = req.params;
+	const userId = req.userId;
 	const { name, duration, price, companyId } = req.body;
 
 	try {
@@ -709,13 +721,14 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 
 		const existingService = await prisma.service.findFirst({
 			where: {
-				name,
+				OR: [{ name }],
+				id: Number(userId),
 			},
 		});
 
-		if (existingService?.name && existingService.companyId) {
+		if (existingService?.name === name) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Service name already in use" }],
+				errors: [{ message: "Nome do serviço já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
