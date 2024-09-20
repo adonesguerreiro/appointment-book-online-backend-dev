@@ -721,22 +721,25 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 
 		const existingService = await prisma.service.findFirst({
 			where: {
-				OR: [{ name }],
-				id: Number(userId),
+				id: parseInt(id),
+				name,
 			},
 		});
 
-		if (existingService?.name === name) {
+		if (
+			existingService &&
+			existingService.id !== Number(id) &&
+			existingService.name === name
+		) {
 			const errorResponse: ErrorResponse = {
 				errors: [{ message: "Nome do serviço já está em uso" }],
 			};
-
 			return res.status(400).json(errorResponse);
 		}
 
 		const serviceUpdated = await prisma.service.update({
 			where: { id: parseInt(id) },
-			data: { name, duration, price, companyId },
+			data: { name, duration, price, companyId: Number(userId) },
 		});
 
 		res.send(serviceUpdated);
