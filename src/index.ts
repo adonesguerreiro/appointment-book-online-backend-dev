@@ -721,16 +721,13 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 
 		const existingService = await prisma.service.findFirst({
 			where: {
-				id: parseInt(id),
+				NOT: { id: parseInt(id) },
+				companyId: Number(req.userId),
 				name,
 			},
 		});
 
-		if (
-			existingService &&
-			existingService.id !== Number(id) &&
-			existingService.name === name
-		) {
+		if (existingService) {
 			const errorResponse: ErrorResponse = {
 				errors: [{ message: "Nome do serviço já está em uso" }],
 			};
@@ -813,7 +810,7 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 			where: { mobile },
 		});
 
-		if (existingCustomer?.mobile && existingCustomer.companyId) {
+		if (existingCustomer) {
 			const errorResponse: ErrorResponse = {
 				errors: [{ message: "Customer mobile already in use" }],
 			};
@@ -911,12 +908,14 @@ app.delete("/customers/:id", async (req: Request, res: Response) => {
 	res.send(customerDeleted);
 });
 
-app.get("/avaliable-times", async (req: Request, res: Response) => {
+app.get("/available-times/company/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
 	const page = parseInt(req.query.page as string) || 1;
 	const limit = parseInt(req.query.limit as string) || 10;
 	const skip = (page - 1) * limit;
 
 	const times = await prisma.avaliableTime.findMany({
+		where: { companyId: parseInt(id) },
 		skip: skip,
 		take: limit,
 	});
@@ -924,7 +923,7 @@ app.get("/avaliable-times", async (req: Request, res: Response) => {
 	res.send(times);
 });
 
-app.get("/avaliable-times/:id", async (req: Request, res: Response) => {
+app.get("/available-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 
 	const avaliableTimeId = await prisma.avaliableTime.findUnique({
@@ -941,7 +940,8 @@ interface AvaliableRequest extends Request {
 	body: AvaliableData;
 }
 
-app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
+app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
+	const userId = req.userId;
 	const { day, startTime, endTime, interval, companyId } = req.body;
 
 	try {
@@ -950,18 +950,19 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 		const existingDay = await prisma.avaliableTime.findFirst({
 			where: {
 				day,
+				companyId: Number(userId),
 			},
 		});
-		if (existingDay?.day && existingDay.companyId) {
+		if (existingDay) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Day already in use" }],
+				errors: [{ message: "Dia já esta em uso." }],
 			};
 
 			return res.status(400).json(errorResponse);
 		}
 
 		const avaliableCreated = await prisma.avaliableTime.create({
-			data: { day, startTime, endTime, interval, companyId },
+			data: { day, startTime, endTime, interval, companyId: Number(userId) },
 		});
 
 		res.send(avaliableCreated);
@@ -981,9 +982,10 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 });
 
 app.put(
-	"/avaliable-times/:id",
+	"/available-times/:id",
 	async (req: AvaliableRequest, res: Response) => {
 		const { id } = req.params;
+		const userId = req.userId;
 		const { day, startTime, endTime, interval, companyId } = req.body;
 
 		try {
@@ -998,12 +1000,14 @@ app.put(
 
 			const existingDay = await prisma.avaliableTime.findFirst({
 				where: {
+					NOT: { id: parseInt(id) },
+					companyId: Number(userId),
 					day,
 				},
 			});
-			if (existingDay?.day && existingDay.companyId) {
+			if (existingDay) {
 				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Day already in use" }],
+					errors: [{ message: "Dia já está em uso" }],
 				};
 
 				return res.status(400).json(errorResponse);
@@ -1011,7 +1015,7 @@ app.put(
 
 			const avaliableUpdated = await prisma.avaliableTime.update({
 				where: { id: parseInt(id) },
-				data: { startTime, endTime, interval, companyId },
+				data: { day, startTime, endTime, interval, companyId: Number(userId) },
 			});
 
 			res.send(avaliableUpdated);
