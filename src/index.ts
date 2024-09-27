@@ -1051,18 +1051,23 @@ app.delete("/avalible-times/:id", async (req: Request, res: Response) => {
 	res.send(avaliableDeleted);
 });
 
-app.get("/unavailable-times", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
+app.get(
+	"/unavailable-times/company/:id",
+	async (req: Request, res: Response) => {
+		const { id } = req.params;
+		const page = parseInt(req.query.page as string) || 1;
+		const limit = parseInt(req.query.limit as string) || 10;
+		const skip = (page - 1) * limit;
 
-	const unavailableTimes = await prisma.unavailableTime.findMany({
-		skip: skip,
-		take: limit,
-	});
+		const unavailableTimes = await prisma.unavailableTime.findMany({
+			where: { companyId: parseInt(id) },
+			skip: skip,
+			take: limit,
+		});
 
-	res.send(unavailableTimes);
-});
+		res.send(unavailableTimes);
+	}
+);
 
 app.get("/unavailable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -1092,10 +1097,11 @@ app.post(
 			const existingDate = await prisma.unavailableTime.findFirst({
 				where: {
 					date,
+					companyId,
 				},
 			});
 
-			if (existingDate?.date && existingDate.companyId) {
+			if (existingDate?.date) {
 				const errorResponse: ErrorResponse = {
 					errors: [{ message: "Date already in use" }],
 				};
@@ -1104,7 +1110,7 @@ app.post(
 			}
 
 			const unavailableTimeCreated = await prisma.unavailableTime.create({
-				data: { date, startTime, endTime, companyId },
+				data: { date, startTime, endTime, companyId: Number(req.userId) },
 			});
 
 			res.send(unavailableTimeCreated);
