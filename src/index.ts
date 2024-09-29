@@ -24,6 +24,9 @@ import { authConfig } from "./config/auth";
 import auth from "./middlewares/auth";
 import { SessionData } from "./interfaces/SessionData";
 import { sessionSchema } from "./schemas/sessionSchema";
+import { scheduleSchema } from "./schemas/scheduleSchema";
+import { ScheduleData } from "./interfaces/ScheduleData";
+import { handleYupError } from "./utils/handleYupError";
 
 dotenv.config();
 
@@ -86,17 +89,7 @@ app.post("/sessions", async (req: SessionRequest, res: Response) => {
 			}),
 		});
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -128,17 +121,7 @@ app.post("/users", async (req: UserRequest, res: Response) => {
 
 		res.send(userCreated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -228,17 +211,7 @@ app.put("/users", async (req: UserRequest, res: Response) => {
 
 		return res.send(userUpdated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -329,17 +302,7 @@ app.post("/companies", async (req: CompanyRequest, res: Response) => {
 
 		res.send(companyCreated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -401,17 +364,7 @@ app.put("/companies", async (req: CompanyRequest, res: Response) => {
 
 		res.send({ companyUpdated });
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -549,17 +502,7 @@ app.post("/addresses", async (req: AddressRequest, res: Response) => {
 
 		res.send(addressCreated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -602,17 +545,7 @@ app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 
 		res.send(addressUpdated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -631,7 +564,6 @@ app.delete("/addresses/:id", async (req: Request, res: Response) => {
 
 	res.send(addressDeleted);
 });
-
 app.get("/services/company/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 	const page = parseInt(req.query.page as string) || 1;
@@ -665,19 +597,19 @@ interface ServiceRequest extends Request {
 }
 
 app.post("/services", async (req: ServiceRequest, res: Response) => {
-	const { name, duration, price, companyId } = req.body;
+	const { serviceName, duration, price, companyId } = req.body;
 
 	try {
 		await serviceSchema.validate(req.body, { abortEarly: false });
 
 		const existingService = await prisma.service.findFirst({
 			where: {
-				name,
+				serviceName,
 				companyId,
 			},
 		});
 
-		if (existingService?.name) {
+		if (existingService) {
 			const errorResponse: ErrorResponse = {
 				errors: [{ message: "Nome do serviço já está em uso" }],
 			};
@@ -686,29 +618,19 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 		}
 
 		const serviceCreated = await prisma.service.create({
-			data: { name, duration, price, companyId: Number(req.userId) },
+			data: { serviceName, duration, price, companyId: Number(req.userId) },
 		});
 
 		res.send(serviceCreated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
 app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 	const { id } = req.params;
 	const userId = req.userId;
-	const { name, duration, price, companyId } = req.body;
+	const { serviceName, duration, price, companyId } = req.body;
 
 	try {
 		await serviceSchema.validate(req.body, { abortEarly: false });
@@ -723,7 +645,7 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 			where: {
 				NOT: { id: parseInt(id) },
 				companyId: Number(req.userId),
-				name,
+				serviceName,
 			},
 		});
 
@@ -736,22 +658,12 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 
 		const serviceUpdated = await prisma.service.update({
 			where: { id: parseInt(id) },
-			data: { name, duration, price, companyId: Number(userId) },
+			data: { serviceName, duration, price, companyId: Number(userId) },
 		});
 
 		res.send(serviceUpdated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -771,12 +683,135 @@ app.delete("/services/:id", async (req: Request, res: Response) => {
 	res.send(serviceDeleted);
 });
 
-app.get("/customers", async (req: Request, res: Response) => {
+app.get("/schedules/company/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
+	const page = parseInt(req.query.page as string) || 1;
+	const limit = parseInt(req.query.limit as string) || 10;
+	const skip = (page - 1) * limit;
+
+	const schedules = await prisma.schedule.findMany({
+		where: { companyId: parseInt(id) },
+		skip: skip,
+		take: limit,
+	});
+
+	res.send(schedules);
+});
+
+app.get("/schedules/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
+	const userId = req.userId;
+
+	const scheduleId = await prisma.schedule.findUnique({
+		where: { id: parseInt(id), companyId: Number(userId) },
+	});
+
+	if (!scheduleId) return res.status(400).send({ error: "Schedule not found" });
+
+	res.send(scheduleId);
+});
+
+interface ScheduleRequest extends Request {
+	body: ScheduleData;
+}
+app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
+	const { date, status, customerId, serviceId, companyId } = req.body;
+
+	try {
+		await scheduleSchema.validate(req.body, { abortEarly: false });
+
+		const existingSchedule = await prisma.schedule.findFirst({
+			where: {
+				date,
+				status,
+				customerId,
+				serviceId,
+				companyId,
+			},
+		});
+
+		if (existingSchedule) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Agendamento já existe!" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
+		const scheduleCreated = await prisma.schedule.create({
+			data: {
+				date,
+				status,
+				customerId,
+				serviceId,
+				companyId: Number(req.userId),
+			},
+		});
+
+		res.send(scheduleCreated);
+	} catch (err) {
+		handleYupError(err, res);
+	}
+});
+
+app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
+	const { id } = req.params;
+	const userId = req.userId;
+	const { date, status, customerId, serviceId } = req.body;
+
+	try {
+		await scheduleSchema.validate(req.body, { abortEarly: false });
+
+		const scheduleId = await prisma.service.findUnique({
+			where: { id: parseInt(id) },
+		});
+
+		if (!scheduleId)
+			return res.status(400).send({ error: "Schedule not found" });
+
+		const existingSchedule = await prisma.schedule.findFirst({
+			where: {
+				NOT: { id: parseInt(id) },
+				date,
+				status,
+				customerId,
+				serviceId,
+				companyId: Number(req.userId),
+			},
+		});
+
+		if (existingSchedule) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Agendamento já existe" }],
+			};
+			return res.status(400).json(errorResponse);
+		}
+
+		const scheduleUpdated = await prisma.schedule.update({
+			where: { id: parseInt(id) },
+			data: {
+				date,
+				status,
+				customerId,
+				serviceId,
+				companyId: Number(userId),
+			},
+		});
+
+		res.send(scheduleUpdated);
+	} catch (err) {
+		handleYupError(err, res);
+	}
+});
+
+app.get("/customers/company/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
 	const page = parseInt(req.query.page as string) || 1;
 	const limit = parseInt(req.query.limit as string) || 10;
 	const skip = (page - 1) * limit;
 
 	const customers = await prisma.customer.findMany({
+		where: { companyId: parseInt(id) },
 		skip: skip,
 		take: limit,
 	});
@@ -801,7 +836,7 @@ interface CustomerRequest extends Request {
 }
 
 app.post("/customers", async (req: CustomerRequest, res: Response) => {
-	const { name, mobile, companyId } = req.body;
+	const { customerName, mobile } = req.body;
 
 	try {
 		await customerSchema.validate(req.body, { abortEarly: false });
@@ -812,35 +847,25 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 
 		if (existingCustomer) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Customer mobile already in use" }],
+				errors: [{ message: "Número de celular já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
 		}
 
 		const customerCreated = await prisma.customer.create({
-			data: { name, mobile, companyId },
+			data: { customerName, mobile, companyId: Number(req.userId) },
 		});
 
 		res.send(customerCreated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
 app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 	const { id } = req.params;
-	const { name, mobile, companyId } = req.body;
+	const { customerName, mobile, companyId } = req.body;
 
 	try {
 		await customerSchema.validate(req.body, { abortEarly: false });
@@ -853,42 +878,29 @@ app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 			return res.status(400).send({ error: "Customer not found" });
 
 		const existingCustomer = await prisma.customer.findFirst({
-			where: { name, mobile },
+			where: {
+				NOT: { id: parseInt(id) },
+				companyId: Number(req.userId),
+				mobile,
+			},
 		});
 
-		if (existingCustomer?.name && existingCustomer.companyId) {
+		if (existingCustomer) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Customer name already in use" }],
+				errors: [{ message: "Número do celular já está em uso" }],
 			};
 
 			return res.status(400).json(errorResponse);
 		}
 
-		if (existingCustomer?.mobile && existingCustomer.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Customer mobile already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
 		const customer = await prisma.customer.update({
 			where: { id: parseInt(id) },
-			data: { name, mobile, companyId },
+			data: { customerName, mobile, companyId },
 		});
 
 		res.send(customer);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 
@@ -967,17 +979,7 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 
 		res.send(avaliableCreated);
 	} catch (err) {
-		if (err instanceof yup.ValidationError) {
-			const errorResponse: ErrorResponse = {
-				errors: err.inner.map((error) => ({
-					path: error.path,
-					message: error.message,
-				})),
-			};
-			return res.status(400).json(errorResponse);
-		} else {
-			res.status(500).json({ message: "Internal server error" });
-		}
+		handleYupError(err, res);
 	}
 });
 

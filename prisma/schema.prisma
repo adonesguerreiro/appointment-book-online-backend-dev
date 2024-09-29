@@ -14,31 +14,31 @@ datasource db {
 }
 
 model User {
-  id             Int               @id @default(autoincrement())
-  name           String            @db.VarChar(255)
-  email          String            @unique @db.VarChar(255)
-  password       String            @db.VarChar(255)
-  specialty      String?           @db.VarChar(255)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  company        Company?          @relation(fields: [companyId], references: [id])
-  companyId      Int?
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  specialty String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id])
+  companyId Int?
 }
 
 model Company {
-  id        Int       @id @default(autoincrement())
-  name      String    @db.VarChar(255)
-  mobile    String    @unique @db.VarChar(255)
-  email     String    @unique @db.VarChar(255)
-  cnpj      String    @unique @db.VarChar(255)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  users     User[]
-  services  Service[]
-  addresses Address[]
-  schedules Schedule[]
-  customers Customer[]
-  avaliabletimes AvaliableTime[]
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar(255)
+  mobile           String            @unique @db.VarChar(255)
+  email            String            @unique @db.VarChar(255)
+  cnpj             String            @unique @db.VarChar(255)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  users            User[]
+  services         Service[]
+  addresses        Address[]
+  schedules        Schedule[]
+  customers        Customer[]
+  avaliabletimes   AvaliableTime[]
   unavaliabletimes UnavailableTime[]
 }
 
@@ -58,15 +58,15 @@ model Address {
 }
 
 model Service {
-  id        Int        @id @default(autoincrement())
-  name      String     @db.VarChar(255)
-  duration  String     @db.VarChar(255)
-  price     Decimal    @db.Decimal(10, 2)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  company   Company    @relation(fields: [companyId], references: [id])
-  companyId Int
-  schedules Schedule[]
+  id          Int        @id @default(autoincrement())
+  serviceName String     @db.VarChar(255)
+  duration    String     @db.VarChar(255)
+  price       Decimal    @db.Decimal(10, 2)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  company     Company    @relation(fields: [companyId], references: [id])
+  companyId   Int
+  schedules   Schedule[]
 }
 
 model Schedule {
@@ -90,14 +90,14 @@ enum ScheduleStatus {
 }
 
 model Customer {
-  id        Int        @id @default(autoincrement())
-  name      String     @db.VarChar(255)
-  mobile    String     @db.VarChar(255)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  schedules Schedule[]
-  company   Company    @relation(fields: [companyId], references: [id])
-  companyId Int
+  id           Int        @id @default(autoincrement())
+  customerName String     @db.VarChar(255)
+  mobile       String     @db.VarChar(255)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  schedules    Schedule[]
+  company      Company    @relation(fields: [companyId], references: [id])
+  companyId    Int
 }
 
 enum DayWeek {

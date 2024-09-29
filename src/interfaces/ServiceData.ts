@@ -1,5 +1,5 @@
 export interface ServiceData {
-	name: string;
+	serviceName: string;
 	duration: string;
 	price: number;
 	companyId: number;
