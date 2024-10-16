@@ -1,5 +1,5 @@
 import { AddressData } from "./interfaces/AddressData";
-import { PrismaClient } from "@prisma/client";
+import { DayWeek, PrismaClient } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
@@ -28,6 +28,7 @@ import { scheduleSchema } from "./schemas/scheduleSchema";
 import { ScheduleData } from "./interfaces/ScheduleData";
 import { handleYupError } from "./utils/handleYupError";
 import { generateAvailableTimes } from "./utils/generateAvailableTimes";
+import { dateConvertDay } from "./utils/dateConvertDay";
 
 dotenv.config();
 
@@ -739,17 +740,17 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		const scheduleCreated = await prisma.schedule.create({
-			data: {
-				date,
-				status,
-				customerId,
-				serviceId,
-				companyId: Number(req.userId),
-			},
-		});
+		// const scheduleCreated = await prisma.schedule.create({
+		// 	data: {
+		// 		date,
+		// 		status,
+		// 		customerId,
+		// 		serviceId,
+		// 		companyId: Number(req.userId),
+		// 	},
+		// });
 
-		res.send(scheduleCreated);
+		// res.send(scheduleCreated);
 	} catch (err) {
 		handleYupError(err, res);
 	}
@@ -921,20 +922,28 @@ app.delete("/customers/:id", async (req: Request, res: Response) => {
 	res.send(customerDeleted);
 });
 
-app.get("/available-times/company/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
+app.get(
+	"/available-times/company/:id/:date",
+	async (req: Request, res: Response) => {
+		const { id, date } = req.params;
+		const convertDateDay = await dateConvertDay(date);
+		const day = convertDateDay as DayWeek;
+		const page = parseInt(req.query.page as string) || 1;
+		const limit = parseInt(req.query.limit as string) || 10;
+		const skip = (page - 1) * limit;
 
-	const times = await prisma.availableTime.findMany({
-		where: { companyId: parseInt(id) },
-		skip: skip,
-		take: limit,
-	});
+		const times = await prisma.availableTime.findMany({
+			where: { companyId: parseInt(id), ...(day && { day: day as DayWeek }) },
+			include: {
+				availableTimeSlot: !!day,
+			},
+			skip: skip,
+			take: limit,
+		});
 
-	res.send(times);
-});
+		res.send(times);
+	}
+);
 
 app.get("/available-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -1122,6 +1131,24 @@ app.delete("/available-times/:id", async (req: Request, res: Response) => {
 
 	res.send(avaliableDeleted);
 });
+
+app.get(
+	"/available-time-slot/company/:id",
+	async (req: Request, res: Response) => {
+		const { id, date } = req.params;
+		const page = parseInt(req.query.page as string) || 1;
+		const limit = parseInt(req.query.limit as string) || 10;
+		const skip = (page - 1) * limit;
+
+		const availableTimeSlot = await prisma.availableTimeSlot.findMany({
+			where: { companyId: parseInt(id) },
+			skip: skip,
+			take: limit,
+		});
+
+		res.send(availableTimeSlot);
+	}
+);
 
 app.get(
 	"/unavailable-times/company/:id",
