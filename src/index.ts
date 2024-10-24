@@ -717,18 +717,42 @@ interface ScheduleRequest extends Request {
 	body: ScheduleData;
 }
 app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
-	const { date, status, customerId, serviceId, companyId } = req.body;
+	const { date, timeSlotAvailable, status, customerId, serviceId } = req.body;
+
+	const formattedDate = date.split("T")[0] + `T${timeSlotAvailable}:00.000Z`;
 
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
+		const existingCustomerId = await prisma.customer.findFirst({
+			where: { id: Number(customerId), companyId: Number(req.userId) },
+		});
+
+		if (!existingCustomerId) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Cliente não encontrado" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
+		const existingServiceId = await prisma.service.findFirst({
+			where: { id: Number(serviceId), companyId: Number(req.userId) },
+		});
+
+		if (!existingServiceId) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Serviço não encontrado" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
 		const existingSchedule = await prisma.schedule.findFirst({
 			where: {
-				date,
+				date: formattedDate,
 				status,
-				customerId,
-				serviceId,
-				companyId,
+				companyId: Number(req.userId),
 			},
 		});
 
@@ -740,17 +764,22 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		// const scheduleCreated = await prisma.schedule.create({
-		// 	data: {
-		// 		date,
-		// 		status,
-		// 		customerId,
-		// 		serviceId,
-		// 		companyId: Number(req.userId),
-		// 	},
-		// });
+		const scheduleCreated = await prisma.schedule.create({
+			data: {
+				date: formattedDate,
+				status,
+				customerId: existingCustomerId.id,
+				customerName: existingCustomerId.customerName,
+				customerPhone: existingCustomerId.mobile,
+				serviceId: existingServiceId.id,
+				serviceName: existingServiceId.serviceName,
+				duration: existingServiceId.duration,
+				price: existingServiceId.price,
+				companyId: Number(req.userId),
+			},
+		});
 
-		// res.send(scheduleCreated);
+		res.send(scheduleCreated);
 	} catch (err) {
 		handleYupError(err, res);
 	}

@@ -2,9 +2,11 @@ import { DayWeek } from "@prisma/client";
 
 export async function dateConvertDay(date: string) {
 	const dateObj = new Date(date);
-	const day = dateObj.getDay() + 1;
+	const day = dateObj.getDay();
 
 	switch (day) {
+		case 0:
+			return DayWeek.SUNDAY;
 		case 1:
 			return DayWeek.MONDAY;
 		case 2:
@@ -17,8 +19,6 @@ export async function dateConvertDay(date: string) {
 			return DayWeek.FRIDAY;
 		case 6:
 			return DayWeek.SATURDAY;
-		case 7:
-			return DayWeek.SUNDAY;
 		default:
 			throw new Error("Invalid date format");
 	}
