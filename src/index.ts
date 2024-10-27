@@ -787,49 +787,70 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 
 app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 	const { id } = req.params;
-	const userId = req.userId;
-	const { date, status, customerId, serviceId } = req.body;
+	const { date, timeSlotAvailable, status, customerId, serviceId } = req.body;
+
+	const formattedDate = date.split("T")[0] + `T${timeSlotAvailable}:00.000Z`;
 
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
-		const scheduleId = await prisma.service.findUnique({
-			where: { id: parseInt(id) },
+		const existingCustomerId = await prisma.customer.findFirst({
+			where: { id: Number(customerId), companyId: Number(req.userId) },
 		});
 
-		if (!scheduleId)
-			return res.status(400).send({ error: "Schedule not found" });
+		if (!existingCustomerId) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Cliente não encontrado" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
+		const existingServiceId = await prisma.service.findFirst({
+			where: { id: Number(serviceId), companyId: Number(req.userId) },
+		});
+
+		if (!existingServiceId) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Serviço não encontrado" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
 
 		const existingSchedule = await prisma.schedule.findFirst({
 			where: {
-				NOT: { id: parseInt(id) },
-				date,
+				date: formattedDate,
 				status,
-				customerId,
-				serviceId,
 				companyId: Number(req.userId),
 			},
 		});
 
 		if (existingSchedule) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Agendamento já existe" }],
+				errors: [{ message: "Agendamento já existe!" }],
 			};
+
 			return res.status(400).json(errorResponse);
 		}
 
-		const scheduleUpdated = await prisma.schedule.update({
+		const scheduleCreated = await prisma.schedule.update({
 			where: { id: parseInt(id) },
 			data: {
-				date,
+				date: formattedDate,
 				status,
-				customerId,
-				serviceId,
-				companyId: Number(userId),
+				customerId: existingCustomerId.id,
+				customerName: existingCustomerId.customerName,
+				customerPhone: existingCustomerId.mobile,
+				serviceId: existingServiceId.id,
+				serviceName: existingServiceId.serviceName,
+				duration: existingServiceId.duration,
+				price: existingServiceId.price,
+				companyId: Number(req.userId),
 			},
 		});
 
-		res.send(scheduleUpdated);
+		res.send(scheduleCreated);
 	} catch (err) {
 		handleYupError(err, res);
 	}

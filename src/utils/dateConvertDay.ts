@@ -1,10 +1,11 @@
 import { DayWeek } from "@prisma/client";
 
 export async function dateConvertDay(date: string) {
-	const dateObj = new Date(date);
-	const day = dateObj.getDay();
+	const [year, month, day] = date.split("-").map(Number);
+	const dateObj = new Date(year, month - 1, day);
+	const dayOfWeek = dateObj.getDay();
 
-	switch (day) {
+	switch (dayOfWeek) {
 		case 0:
 			return DayWeek.SUNDAY;
 		case 1:
