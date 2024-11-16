@@ -764,6 +764,32 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
+		const startOfDayDate = date.split("T")[0] + `T00:00:00.000Z`;
+		const endOfDayDate = date.split("T")[0] + `T23:59:59.000Z`;
+
+		const existingScheduleTime = await prisma.unavailableTime.findFirst({
+			where: {
+				date: {
+					gte: startOfDayDate,
+					lte: endOfDayDate,
+				},
+				companyId: Number(req.userId),
+			},
+		});
+
+		if (existingScheduleTime) {
+			const errorResponse: ErrorResponse = {
+				errors: [
+					{
+						message:
+							"Já existe horário indisponível para este período, não será possível agendar.",
+					},
+				],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
 		const scheduleCreated = await prisma.schedule.create({
 			data: {
 				date: formattedDate,
@@ -834,7 +860,33 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		const scheduleCreated = await prisma.schedule.update({
+		const startOfDayDate = date.split("T")[0] + `T00:00:00.000Z`;
+		const endOfDayDate = date.split("T")[0] + `T23:59:59.000Z`;
+
+		const existingScheduleTime = await prisma.unavailableTime.findFirst({
+			where: {
+				date: {
+					gte: startOfDayDate,
+					lte: endOfDayDate,
+				},
+				companyId: Number(req.userId),
+			},
+		});
+
+		if (existingScheduleTime) {
+			const errorResponse: ErrorResponse = {
+				errors: [
+					{
+						message:
+							"Existe horário indisponível para este período, não será possível agendar.",
+					},
+				],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
+		const scheduleUpdated = await prisma.schedule.update({
 			where: { id: parseInt(id) },
 			data: {
 				date: formattedDate,
@@ -850,7 +902,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 			},
 		});
 
-		res.send(scheduleCreated);
+		res.send(scheduleUpdated);
 	} catch (err) {
 		handleYupError(err, res);
 	}
@@ -972,17 +1024,21 @@ app.delete("/customers/:id", async (req: Request, res: Response) => {
 	res.send(customerDeleted);
 });
 
-app.get(
-	"/available-times/company/:id/:date",
-	async (req: Request, res: Response) => {
-		const { id, date } = req.params;
-		const convertDateDay = await dateConvertDay(date);
-		const day = convertDateDay as DayWeek;
-		const page = parseInt(req.query.page as string) || 1;
-		const limit = parseInt(req.query.limit as string) || 10;
-		const skip = (page - 1) * limit;
+app.get("/available-times/company/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
+	const { date } = req.query;
 
-		const times = await prisma.availableTime.findMany({
+	const page = parseInt(req.query.page as string) || 1;
+	const limit = parseInt(req.query.limit as string) || 10;
+	const skip = (page - 1) * limit;
+
+	let times;
+
+	if (date) {
+		const convertDateDay = await dateConvertDay(date as string);
+		const day = convertDateDay as DayWeek;
+
+		times = await prisma.availableTime.findMany({
 			where: { companyId: parseInt(id), ...(day && { day: day as DayWeek }) },
 			include: {
 				availableTimeSlot: !!day,
@@ -990,10 +1046,16 @@ app.get(
 			skip: skip,
 			take: limit,
 		});
-
-		res.send(times);
+	} else {
+		times = await prisma.availableTime.findMany({
+			where: { companyId: parseInt(id) },
+			skip: skip,
+			take: limit,
+		});
 	}
-);
+
+	res.send(times);
+});
 
 app.get("/available-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -1238,7 +1300,8 @@ interface UnavaliableRequest extends Request {
 app.post(
 	"/unavailable-times",
 	async (req: UnavaliableRequest, res: Response) => {
-		const { date, startTime, endTime, companyId } = req.body;
+		const userId = req.userId;
+		const { date, startTime, endTime } = req.body;
 
 		try {
 			await unavaliableSchema.validate(req.body, { abortEarly: false });
@@ -1246,13 +1309,35 @@ app.post(
 			const existingDate = await prisma.unavailableTime.findFirst({
 				where: {
 					date,
-					companyId,
+					companyId: Number(userId),
 				},
 			});
 
 			if (existingDate?.date) {
 				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Date already in use" }],
+					errors: [{ message: "Data já está em uso" }],
+				};
+
+				return res.status(400).json(errorResponse);
+			}
+
+			const startOfDayDate = date.split("T")[0] + `T${startTime}:00.000Z`;
+			const endOfDayDate = date.split("T")[0] + `T${endTime}:00.000Z`;
+
+			const existingSchedule = await prisma.schedule.findFirst({
+				where: {
+					date: {
+						gte: startOfDayDate,
+						lte: endOfDayDate,
+					},
+					status: "SCHEDULED",
+					companyId: Number(req.userId),
+				},
+			});
+
+			if (existingSchedule) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Já existe um agendamento para este período." }],
 				};
 
 				return res.status(400).json(errorResponse);
@@ -1264,17 +1349,7 @@ app.post(
 
 			res.send(unavailableTimeCreated);
 		} catch (err) {
-			if (err instanceof yup.ValidationError) {
-				const errorResponse: ErrorResponse = {
-					errors: err.inner.map((error) => ({
-						path: error.path,
-						message: error.message,
-					})),
-				};
-				return res.status(400).json(errorResponse);
-			} else {
-				res.status(500).json({ message: "Internal server error" });
-			}
+			handleYupError(err, res);
 		}
 	}
 );
@@ -1310,6 +1385,28 @@ app.put(
 				return res.status(400).json(errorResponse);
 			}
 
+			const startOfDayDate = date.split("T")[0] + `T${startTime}:00.000Z`;
+			const endOfDayDate = date.split("T")[0] + `T${endTime}:00.000Z`;
+
+			const existingSchedule = await prisma.schedule.findFirst({
+				where: {
+					date: {
+						gte: startOfDayDate,
+						lte: endOfDayDate,
+					},
+					status: "SCHEDULED",
+					companyId: Number(req.userId),
+				},
+			});
+
+			if (existingSchedule) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Já existe um agendamento para este período." }],
+				};
+
+				return res.status(400).json(errorResponse);
+			}
+
 			const unavailableUpdated = await prisma.unavailableTime.update({
 				where: { id: parseInt(id) },
 				data: { startTime, endTime, companyId },
@@ -1317,17 +1414,7 @@ app.put(
 
 			res.send(unavailableUpdated);
 		} catch (err) {
-			if (err instanceof yup.ValidationError) {
-				const errorResponse: ErrorResponse = {
-					errors: err.inner.map((error) => ({
-						path: error.path,
-						message: error.message,
-					})),
-				};
-				return res.status(400).json(errorResponse);
-			} else {
-				res.status(500).json({ message: "Internal server error" });
-			}
+			handleYupError(err, res);
 		}
 	}
 );
