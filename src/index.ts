@@ -566,11 +566,25 @@ app.delete("/addresses/:id", async (req: Request, res: Response) => {
 
 	res.send(addressDeleted);
 });
+
 app.get("/services/company/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
+	const page = Math.max(1, parseInt(req.query.page as string) || 1);
+	const limit = Math.min(
+		100,
+		Math.max(1, parseInt(req.query.limit as string) || 10)
+	);
 	const skip = (page - 1) * limit;
+
+	const totalItems = await prisma.service.count({
+		where: { companyId: parseInt(id) },
+	});
+
+	const totalPages = Math.ceil(totalItems / limit);
+
+	if (page > totalPages) {
+		return res.status(404).send({ error: "Página não encontrada" });
+	}
 
 	const services = await prisma.service.findMany({
 		where: { companyId: parseInt(id) },
@@ -578,7 +592,7 @@ app.get("/services/company/:id", async (req: Request, res: Response) => {
 		take: limit,
 	});
 
-	res.send(services);
+	res.send({ services, totalPages, currentPage: page });
 });
 
 app.get("/services/:id", async (req: Request, res: Response) => {
@@ -686,18 +700,36 @@ app.delete("/services/:id", async (req: Request, res: Response) => {
 });
 
 app.get("/schedules/company/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
+	try {
+		const { id } = req.params;
+		const page = Math.max(1, parseInt(req.query.page as string) || 1);
+		const limit = Math.min(
+			100,
+			Math.max(1, parseInt(req.query.limit as string) || 10)
+		);
+		const skip = (page - 1) * limit;
 
-	const schedules = await prisma.schedule.findMany({
-		where: { companyId: parseInt(id) },
-		skip: skip,
-		take: limit,
-	});
+		const totalItems = await prisma.schedule.count({
+			where: { companyId: parseInt(id) },
+		});
 
-	res.send(schedules);
+		const totalPages = Math.ceil(totalItems / limit);
+
+		if (page > totalPages) {
+			return res.status(404).send({ error: "Página não encontrada" });
+		}
+
+		const schedules = await prisma.schedule.findMany({
+			where: { companyId: parseInt(id) },
+			skip,
+			take: limit,
+		});
+
+		res.send({ schedules, totalPages, currentPage: page });
+	} catch (error) {
+		console.error("Erro no backend:", error);
+		res.status(500).send({ error: "Erro no servidor" });
+	}
 });
 
 app.get("/schedules/:id", async (req: Request, res: Response) => {
@@ -910,9 +942,22 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 
 app.get("/customers/company/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
+	const page = Math.max(1, parseInt(req.query.page as string) || 1);
+	const limit = Math.min(
+		100,
+		Math.max(1, parseInt(req.query.limit as string) || 10)
+	);
 	const skip = (page - 1) * limit;
+
+	const totalItems = await prisma.customer.count({
+		where: { companyId: parseInt(id) },
+	});
+
+	const totalPages = Math.ceil(totalItems / limit);
+
+	if (page > totalPages) {
+		return res.status(404).send({ error: "Página não encontrada" });
+	}
 
 	const customers = await prisma.customer.findMany({
 		where: { companyId: parseInt(id) },
@@ -920,7 +965,7 @@ app.get("/customers/company/:id", async (req: Request, res: Response) => {
 		take: limit,
 	});
 
-	res.send(customers);
+	res.send({ customers, totalPages, currentPage: page });
 });
 
 app.get("/customers/:id", async (req: Request, res: Response) => {
@@ -1028,17 +1073,30 @@ app.get("/available-times/company/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 	const { date } = req.query;
 
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
+	const page = Math.max(1, parseInt(req.query.page as string) || 1);
+	const limit = Math.min(
+		100,
+		Math.max(1, parseInt(req.query.limit as string) || 10)
+	);
 	const skip = (page - 1) * limit;
 
-	let times;
+	const totalItems = await prisma.availableTime.count({
+		where: { companyId: parseInt(id) },
+	});
+
+	const totalPages = Math.ceil(totalItems / limit);
+
+	if (page > totalPages) {
+		return res.status(404).send({ error: "Página não encontrada" });
+	}
+
+	let availableTimes;
 
 	if (date) {
 		const convertDateDay = await dateConvertDay(date as string);
 		const day = convertDateDay as DayWeek;
 
-		times = await prisma.availableTime.findMany({
+		availableTimes = await prisma.availableTime.findMany({
 			where: { companyId: parseInt(id), ...(day && { day: day as DayWeek }) },
 			include: {
 				availableTimeSlot: !!day,
@@ -1047,14 +1105,14 @@ app.get("/available-times/company/:id", async (req: Request, res: Response) => {
 			take: limit,
 		});
 	} else {
-		times = await prisma.availableTime.findMany({
+		availableTimes = await prisma.availableTime.findMany({
 			where: { companyId: parseInt(id) },
 			skip: skip,
 			take: limit,
 		});
 	}
 
-	res.send(times);
+	res.send({ availableTimes, totalPages, currentPage: page });
 });
 
 app.get("/available-times/:id", async (req: Request, res: Response) => {
@@ -1266,9 +1324,22 @@ app.get(
 	"/unavailable-times/company/:id",
 	async (req: Request, res: Response) => {
 		const { id } = req.params;
-		const page = parseInt(req.query.page as string) || 1;
-		const limit = parseInt(req.query.limit as string) || 10;
+		const page = Math.max(1, parseInt(req.query.page as string) || 1);
+		const limit = Math.min(
+			100,
+			Math.max(1, parseInt(req.query.limit as string) || 10)
+		);
 		const skip = (page - 1) * limit;
+
+		const totalItems = await prisma.unavailableTime.count({
+			where: { companyId: parseInt(id) },
+		});
+
+		const totalPages = Math.ceil(totalItems / limit);
+
+		if (page > totalPages) {
+			return res.status(404).send({ error: "Página não encontrada" });
+		}
 
 		const unavailableTimes = await prisma.unavailableTime.findMany({
 			where: { companyId: parseInt(id) },
@@ -1276,7 +1347,7 @@ app.get(
 			take: limit,
 		});
 
-		res.send(unavailableTimes);
+		res.send({ unavailableTimes, totalPages, currentPage: page });
 	}
 );
 
