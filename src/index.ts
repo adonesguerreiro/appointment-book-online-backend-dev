@@ -1268,7 +1268,6 @@ app.put(
 					},
 				});
 			}
-
 			res.send({ avaliableUpdated, availableTimeSlotUpdated });
 		} catch (err) {
 			if (err instanceof yup.ValidationError) {

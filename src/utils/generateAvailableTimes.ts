@@ -30,18 +30,8 @@ export async function generateAvailableTimes(
 	while (currentTime < endTimeDate) {
 		const currentTimeString = currentTime.toTimeString().slice(0, 5);
 
-		if (
-			existingAvailableTime &&
-			existingStartTime &&
-			existingEndTime &&
-			currentTime >= existingStartTime &&
-			currentTime < existingEndTime
-		) {
-			currentTime.setTime(existingEndTime.getTime());
-		} else {
-			timeSlots.push(currentTimeString);
-			currentTime.setMinutes(currentTime.getMinutes() + interval);
-		}
+		timeSlots.push(currentTimeString);
+		currentTime.setMinutes(currentTime.getMinutes() + interval);
 	}
 
 	return timeSlots;
