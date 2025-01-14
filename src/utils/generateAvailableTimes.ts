@@ -27,11 +27,21 @@ export async function generateAvailableTimes(
 		? new Date(`1970-01-01T${existingAvailableTime.endTime}:00`)
 		: null;
 
-	while (currentTime < endTimeDate) {
+	while (currentTime <= endTimeDate) {
 		const currentTimeString = currentTime.toTimeString().slice(0, 5);
 
-		timeSlots.push(currentTimeString);
-		currentTime.setMinutes(currentTime.getMinutes() + interval);
+		if (
+			existingAvailableTime &&
+			existingStartTime &&
+			existingEndTime &&
+			currentTime >= existingStartTime &&
+			currentTime < existingEndTime
+		) {
+			currentTime.setTime(existingEndTime.getTime());
+		} else {
+			timeSlots.push(currentTimeString);
+			currentTime.setMinutes(currentTime.getMinutes() + interval);
+		}
 	}
 
 	return timeSlots;

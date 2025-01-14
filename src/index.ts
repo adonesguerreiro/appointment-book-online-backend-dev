@@ -1249,7 +1249,13 @@ app.put(
 				Number(userId)
 			);
 
-			for (const time of availableTimeSlotUpdated) {
+			const sortedTimeSlots = availableTimeSlotUpdated.sort((a, b) => {
+				const timeA = new Date(`1970-01-01T${a}:00`).getTime();
+				const timeB = new Date(`1970-01-01T${b}:00`).getTime();
+				return timeA - timeB;
+			});
+
+			for (const time of sortedTimeSlots) {
 				await prisma.availableTimeSlot.upsert({
 					where: {
 						timeSlot_availableTimeId_companyId: {
@@ -1268,7 +1274,10 @@ app.put(
 					},
 				});
 			}
-			res.send({ avaliableUpdated, availableTimeSlotUpdated });
+
+			res.send({
+				availableTimeSlotUpdated,
+			});
 		} catch (err) {
 			if (err instanceof yup.ValidationError) {
 				const errorResponse: ErrorResponse = {
