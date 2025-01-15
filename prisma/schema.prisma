@@ -39,7 +39,7 @@ model Company {
   schedules         Schedule[]
   customers         Customer[]
   availableTimes    AvailableTime[]
-  unavailableTimes  UnavailableTime[]
+  unavailableTimes  UnavaliableTime[]
   availableTimeSlot AvailableTimeSlot[]
 }
 
@@ -151,13 +151,14 @@ model AvailableTimeSlot {
   @@unique([timeSlot, availableTimeId, companyId])
 }
 
-model UnavailableTime {
+model UnavaliableTime {
   id        Int       @id @default(autoincrement())
-  date      DateTime?
+  date      DateTime
   startTime String    @db.VarChar(255)
   endTime   String    @db.VarChar(255)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
   company   Company   @relation(fields: [companyId], references: [id])
   companyId Int
 }
