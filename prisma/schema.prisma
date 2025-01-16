@@ -101,6 +101,7 @@ model Customer {
   mobile       String     @db.VarChar(255)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
   schedules    Schedule[]
   company      Company    @relation(fields: [companyId], references: [id])
   companyId    Int
@@ -131,6 +132,7 @@ model AvailableTime {
   interval          Int
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
   company           Company             @relation(fields: [companyId], references: [id])
   companyId         Int
   availableTimeSlot AvailableTimeSlot[]

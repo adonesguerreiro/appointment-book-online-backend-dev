@@ -960,7 +960,7 @@ app.get("/customers/company/:id", async (req: Request, res: Response) => {
 	}
 
 	const customers = await prisma.customer.findMany({
-		where: { companyId: parseInt(id) },
+		where: { companyId: parseInt(id), deletedAt: null },
 		skip: skip,
 		take: limit,
 	});
@@ -1062,8 +1062,9 @@ app.delete("/customers/:id", async (req: Request, res: Response) => {
 
 	if (!customerId) return res.status(400).send({ error: "Customer not found" });
 
-	const customerDeleted = await prisma.customer.delete({
+	const customerDeleted = await prisma.customer.update({
 		where: { id: parseInt(id) },
+		data: { deletedAt: new Date() },
 	});
 
 	res.send(customerDeleted);
@@ -1097,7 +1098,11 @@ app.get("/available-times/company/:id", async (req: Request, res: Response) => {
 		const day = convertDateDay as DayWeek;
 
 		availableTimes = await prisma.availableTime.findMany({
-			where: { companyId: parseInt(id), ...(day && { day: day as DayWeek }) },
+			where: {
+				companyId: parseInt(id),
+				...(day && { day: day as DayWeek }),
+				deletedAt: null,
+			},
 			include: {
 				availableTimeSlot: !!day,
 			},
@@ -1106,7 +1111,7 @@ app.get("/available-times/company/:id", async (req: Request, res: Response) => {
 		});
 	} else {
 		availableTimes = await prisma.availableTime.findMany({
-			where: { companyId: parseInt(id) },
+			where: { companyId: parseInt(id), deletedAt: null },
 			skip: skip,
 			take: limit,
 		});
@@ -1303,8 +1308,9 @@ app.delete("/available-times/:id", async (req: Request, res: Response) => {
 
 	if (!avaliableId) return res.status(400).send({ error: "Time not found" });
 
-	const avaliableDeleted = await prisma.availableTime.delete({
+	const avaliableDeleted = await prisma.availableTime.update({
 		where: { id: parseInt(id) },
+		data: { deletedAt: new Date() },
 	});
 
 	res.send(avaliableDeleted);
@@ -1363,7 +1369,7 @@ app.get("/unavailable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 
 	const unavailableTimeId = await prisma.unavaliableTime.findUnique({
-		where: { id: parseInt(id) },
+		where: { id: parseInt(id), deletedAt: null },
 	});
 
 	if (!unavailableTimeId)
