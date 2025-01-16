@@ -65,6 +65,7 @@ model Service {
   price       Decimal    @db.Decimal(10, 2)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+   deletedAt    DateTime?
   company     Company    @relation(fields: [companyId], references: [id])
   companyId   Int
   schedules   Schedule[]

@@ -587,7 +587,7 @@ app.get("/services/company/:id", async (req: Request, res: Response) => {
 	}
 
 	const services = await prisma.service.findMany({
-		where: { companyId: parseInt(id) },
+		where: { companyId: parseInt(id), deletedAt: null },
 		skip: skip,
 		take: limit,
 	});
@@ -692,8 +692,9 @@ app.delete("/services/:id", async (req: Request, res: Response) => {
 
 	if (!serviceId) return res.status(400).send({ error: "Service not found" });
 
-	const serviceDeleted = await prisma.service.delete({
+	const serviceDeleted = await prisma.service.update({
 		where: { id: parseInt(id) },
+		data: { deletedAt: new Date() },
 	});
 
 	res.send(serviceDeleted);
