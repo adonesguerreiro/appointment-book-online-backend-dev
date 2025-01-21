@@ -1311,17 +1311,7 @@ app.put(
 				availableTimeSlotUpdated,
 			});
 		} catch (err) {
-			if (err instanceof yup.ValidationError) {
-				const errorResponse: ErrorResponse = {
-					errors: err.inner.map((error) => ({
-						path: error.path,
-						message: error.message,
-					})),
-				};
-				return res.status(400).json(errorResponse);
-			} else {
-				res.status(500).json({ message: "Internal server error" });
-			}
+			handleYupError(err, res);
 		}
 	}
 );
