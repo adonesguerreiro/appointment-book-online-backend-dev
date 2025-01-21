@@ -690,6 +690,20 @@ app.delete("/services/:id", async (req: Request, res: Response) => {
 		where: { id: parseInt(id) },
 	});
 
+	const serviceScheduleExists = await prisma.schedule.findFirst({
+		where: { serviceId: parseInt(id) },
+	});
+
+	if (serviceScheduleExists) {
+		const errorResponse: ErrorResponse = {
+			errors: [
+				{ message: "Serviço possui agendamentos, não é possível deletar" },
+			],
+		};
+
+		return res.status(400).json(errorResponse);
+	}
+
 	if (!serviceId) return res.status(400).send({ error: "Service not found" });
 
 	const serviceDeleted = await prisma.service.update({
@@ -1063,6 +1077,20 @@ app.delete("/customers/:id", async (req: Request, res: Response) => {
 
 	if (!customerId) return res.status(400).send({ error: "Customer not found" });
 
+	const customerSchedulesExists = await prisma.schedule.findFirst({
+		where: { customerId: parseInt(id) },
+	});
+
+	if (customerSchedulesExists) {
+		const errorResponse: ErrorResponse = {
+			errors: [
+				{ message: "Cliente possui agendamentos, não é possível deletar" },
+			],
+		};
+
+		return res.status(400).json(errorResponse);
+	}
+
 	const customerDeleted = await prisma.customer.update({
 		where: { id: parseInt(id) },
 		data: { deletedAt: new Date() },
@@ -1149,8 +1177,6 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 			where: {
 				day,
 				period,
-				startTime,
-				endTime,
 				companyId: Number(userId),
 			},
 		});
@@ -1302,12 +1328,36 @@ app.put(
 
 app.delete("/available-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
+	const userId = req.userId;
 
 	const avaliableId = await prisma.availableTime.findUnique({
 		where: { id: parseInt(id) },
 	});
 
 	if (!avaliableId) return res.status(400).send({ error: "Time not found" });
+
+	const allSchedules = await prisma.schedule.findMany({
+		where: { companyId: Number(userId) },
+	});
+
+	const scheduleExists = allSchedules.find(
+		(schedule) =>
+			schedule.date.toTimeString().split(" ")[0] >= avaliableId.startTime &&
+			schedule.date.toTimeString().split(" ")[0] <= avaliableId.endTime
+	);
+
+	if (scheduleExists) {
+		const errorResponse: ErrorResponse = {
+			errors: [
+				{
+					message:
+						"Horário disponível possui agendamentos, não é possível deletar",
+				},
+			],
+		};
+
+		return res.status(400).json(errorResponse);
+	}
 
 	const avaliableDeleted = await prisma.availableTime.update({
 		where: { id: parseInt(id) },
