@@ -4,7 +4,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import bcrypt from "bcrypt";
-import * as yup from "yup";
 import { ErrorResponse } from "./interfaces/ErrorResponse";
 import { userSchema } from "./schemas/userSchema";
 import { companySchema } from "./schemas/companySchema";
@@ -38,6 +37,7 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 app.use(cors());
+app.use(auth);
 
 app.get("/", (req: Request, res: Response) => {
 	const { message } = req.body;
@@ -98,6 +98,22 @@ app.post("/sessions", async (req: SessionRequest, res: Response) => {
 interface UserRequest extends Request {
 	body: UserData;
 }
+
+app.get("/dashboard/company/:id", async (req: Request, res: Response) => {
+	const { id } = req.params;
+
+	if (!id) return res.status(400).send({ error: "User ID is required" });
+
+	const scheduleByStatus = await prisma.schedule.groupBy({
+		by: ["status"],
+		where: { companyId: Number(id) },
+		_count: {
+			status: true,
+		},
+	});
+
+	res.send(scheduleByStatus);
+});
 
 app.post("/users", async (req: UserRequest, res: Response) => {
 	const { name, email, password, specialty, companyId } = req.body;
