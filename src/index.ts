@@ -99,21 +99,34 @@ interface UserRequest extends Request {
 	body: UserData;
 }
 
-app.get("/dashboard/company/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
+app.get(
+	"/dashboard/company/:id/month/:month/year/:year",
+	async (req: Request, res: Response) => {
+		const { id, month, year } = req.params;
 
-	if (!id) return res.status(400).send({ error: "User ID is required" });
+		if (!id) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "ID da empresa é obrigatório" }],
+			};
+			return res.status(400).json(errorResponse);
+		}
+		const scheduleByStatus = await prisma.schedule.groupBy({
+			by: ["status"],
+			where: {
+				companyId: Number(id),
+				date: {
+					gte: new Date(`${year}-${month}-01`),
+					lte: new Date(`${year}-${month}-31`),
+				},
+			},
+			_count: {
+				status: true,
+			},
+		});
 
-	const scheduleByStatus = await prisma.schedule.groupBy({
-		by: ["status"],
-		where: { companyId: Number(id) },
-		_count: {
-			status: true,
-		},
-	});
-
-	res.send(scheduleByStatus);
-});
+		res.send({ scheduleByStatus });
+	}
+);
 
 app.post("/users", async (req: UserRequest, res: Response) => {
 	const { name, email, password, specialty, companyId } = req.body;
