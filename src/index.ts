@@ -1442,11 +1442,25 @@ app.delete("/available-times/:id", async (req: Request, res: Response) => {
 		where: { companyId: Number(userId) },
 	});
 
-	const scheduleExists = allSchedules.find(
-		(schedule) =>
-			schedule.date.toTimeString().split(" ")[0] >= avaliableId.startTime &&
-			schedule.date.toTimeString().split(" ")[0] <= avaliableId.endTime
-	);
+	const scheduleExists = (
+		await Promise.all(
+			allSchedules.map(async (schedule) => {
+				const scheduleTime = schedule.date
+					.toISOString()
+					.split("T")[1]
+					.slice(0, 5);
+				const scheduleDay = await dateConvertDay(
+					schedule.date.toISOString().split("T")[0]
+				);
+
+				return (
+					scheduleTime >= avaliableId.startTime &&
+					scheduleTime <= avaliableId.endTime &&
+					scheduleDay === avaliableId.day
+				);
+			})
+		)
+	).find(Boolean);
 
 	if (scheduleExists) {
 		const errorResponse: ErrorResponse = {
