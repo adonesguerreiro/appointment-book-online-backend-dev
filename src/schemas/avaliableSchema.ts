@@ -5,8 +5,16 @@ export const avaliableSchema = yup.object().shape({
 		.string()
 		.required("Day is required")
 		.oneOf(
-			["MONDAY", "TUESDAY", "WEDNESDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
-			"Valid day is only MONDAY, TUESDAY, FRIDAY, SATURDAY or SUNDAY"
+			[
+				"MONDAY",
+				"TUESDAY",
+				"WEDNESDAY",
+				"THURSDAY",
+				"FRIDAY",
+				"SATURDAY",
+				"SUNDAY",
+			],
+			"Valid day is only MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY or SUNDAY"
 		),
 	startTime: yup.string().required("Start time is required"),
 	endTime: yup.string().required("End time is required"),

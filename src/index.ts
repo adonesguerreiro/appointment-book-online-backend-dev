@@ -642,7 +642,7 @@ interface ServiceRequest extends Request {
 }
 
 app.post("/services", async (req: ServiceRequest, res: Response) => {
-	const { serviceName, duration, price, companyId } = req.body;
+	const { serviceName, duration, price } = req.body;
 
 	try {
 		await serviceSchema.validate(req.body, { abortEarly: false });
@@ -650,7 +650,8 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 		const existingService = await prisma.service.findFirst({
 			where: {
 				serviceName,
-				companyId,
+				companyId: Number(req.userId),
+				deletedAt: null,
 			},
 		});
 
@@ -662,9 +663,34 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		const serviceCreated = await prisma.service.create({
-			data: { serviceName, duration, price, companyId: Number(req.userId) },
+		const existingServiceDeleted = await prisma.service.findFirst({
+			where: {
+				serviceName,
+				companyId: Number(req.userId),
+				NOT: {
+					deletedAt: null,
+				},
+			},
 		});
+
+		let serviceCreated;
+
+		if (existingServiceDeleted) {
+			serviceCreated = await prisma.service.update({
+				where: { id: existingServiceDeleted.id },
+				data: {
+					serviceName,
+					duration,
+					price,
+					companyId: Number(req.userId),
+					deletedAt: null,
+				},
+			});
+		} else {
+			serviceCreated = await prisma.service.create({
+				data: { serviceName, duration, price, companyId: Number(req.userId) },
+			});
+		}
 
 		res.send(serviceCreated);
 	} catch (err) {
@@ -674,8 +700,7 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 
 app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 	const { id } = req.params;
-	const userId = req.userId;
-	const { serviceName, duration, price, companyId } = req.body;
+	const { serviceName, duration, price } = req.body;
 
 	try {
 		await serviceSchema.validate(req.body, { abortEarly: false });
@@ -703,7 +728,7 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 
 		const serviceUpdated = await prisma.service.update({
 			where: { id: parseInt(id) },
-			data: { serviceName, duration, price, companyId: Number(userId) },
+			data: { serviceName, duration, price, companyId: Number(req.userId) },
 		});
 
 		res.send(serviceUpdated);
@@ -1035,7 +1060,7 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 		await customerSchema.validate(req.body, { abortEarly: false });
 
 		const existingCustomer = await prisma.customer.findFirst({
-			where: { mobile },
+			where: { mobile, companyId: Number(req.userId), deletedAt: null },
 		});
 
 		if (existingCustomer) {
@@ -1046,9 +1071,32 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		const customerCreated = await prisma.customer.create({
-			data: { customerName, mobile, companyId: Number(req.userId) },
+		const existingCustomerDeleted = await prisma.customer.findFirst({
+			where: {
+				customerName,
+				mobile,
+				companyId: Number(req.userId),
+				NOT: { deletedAt: null },
+			},
 		});
+
+		let customerCreated;
+
+		if (existingCustomerDeleted) {
+			customerCreated = await prisma.customer.update({
+				where: { id: existingCustomerDeleted.id },
+				data: {
+					customerName,
+					mobile,
+					deletedAt: null,
+					companyId: Number(req.userId),
+				},
+			});
+		} else {
+			customerCreated = await prisma.customer.create({
+				data: { customerName, mobile, companyId: Number(req.userId) },
+			});
+		}
 
 		res.send(customerCreated);
 	} catch (err) {
@@ -1058,7 +1106,7 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 
 app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 	const { id } = req.params;
-	const { customerName, mobile, companyId } = req.body;
+	const { customerName, mobile } = req.body;
 
 	try {
 		await customerSchema.validate(req.body, { abortEarly: false });
@@ -1088,7 +1136,7 @@ app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 
 		const customer = await prisma.customer.update({
 			where: { id: parseInt(id) },
-			data: { customerName, mobile, companyId },
+			data: { customerName, mobile, companyId: Number(req.userId) },
 		});
 
 		res.send(customer);
@@ -1162,7 +1210,11 @@ app.get("/available-times/company/:id", async (req: Request, res: Response) => {
 				deletedAt: null,
 			},
 			include: {
-				availableTimeSlot: !!day,
+				availableTimeSlot: {
+					orderBy: {
+						timeSlot: "asc",
+					},
+				},
 			},
 			skip: skip,
 			take: limit,
@@ -1196,7 +1248,6 @@ interface AvaliableRequest extends Request {
 }
 
 app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
-	const userId = req.userId;
 	const { day, period, startTime, endTime, interval } = req.body;
 
 	try {
@@ -1206,7 +1257,8 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 			where: {
 				day,
 				period,
-				companyId: Number(userId),
+				companyId: Number(req.userId),
+				deletedAt: null,
 			},
 		});
 
@@ -1218,33 +1270,70 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		const avaliableCreated = await prisma.availableTime.create({
-			data: {
+		const existingAvailableTimeDeleted = await prisma.availableTime.findFirst({
+			where: {
 				day,
 				period,
-				startTime,
-				endTime,
-				interval,
-				companyId: Number(userId),
+				companyId: Number(req.userId),
+				NOT: {
+					deletedAt: null,
+				},
 			},
 		});
+
+		let avaliableCreated;
+
+		if (existingAvailableTimeDeleted) {
+			avaliableCreated = await prisma.availableTime.update({
+				where: { id: Number(existingAvailableTimeDeleted.id) },
+				data: {
+					startTime,
+					endTime,
+					interval,
+					deletedAt: null,
+				},
+			});
+		} else {
+			avaliableCreated = await prisma.availableTime.create({
+				data: {
+					day,
+					period,
+					startTime,
+					endTime,
+					interval,
+					companyId: Number(req.userId),
+				},
+			});
+		}
 
 		const availableTimeSlotCreated = await generateAvailableTimes(
 			day,
 			startTime,
 			endTime,
 			interval!,
-			Number(userId)
+			Number(req.userId)
 		);
 
-		for (const time of availableTimeSlotCreated) {
-			await prisma.availableTimeSlot.create({
-				data: {
-					timeSlot: time,
-					availableTimeId: Number(avaliableCreated.id),
-					companyId: Number(userId),
-				},
-			});
+		if (avaliableCreated && availableTimeSlotCreated.length === 0) {
+			for (const time of availableTimeSlotCreated) {
+				await prisma.availableTimeSlot.create({
+					data: {
+						timeSlot: time,
+						availableTimeId: Number(avaliableCreated.id),
+						companyId: Number(req.userId),
+					},
+				});
+			}
+		} else {
+			for (const time of availableTimeSlotCreated) {
+				await prisma.availableTimeSlot.updateMany({
+					data: {
+						timeSlot: time,
+						availableTimeId: Number(avaliableCreated.id),
+						companyId: Number(req.userId),
+					},
+				});
+			}
 		}
 
 		res.send({ avaliableCreated, availableTimeSlotCreated });
@@ -1310,13 +1399,7 @@ app.put(
 				Number(userId)
 			);
 
-			const sortedTimeSlots = availableTimeSlotUpdated.sort((a, b) => {
-				const timeA = new Date(`1970-01-01T${a}:00`).getTime();
-				const timeB = new Date(`1970-01-01T${b}:00`).getTime();
-				return timeA - timeB;
-			});
-
-			for (const time of sortedTimeSlots) {
+			for (const time of availableTimeSlotUpdated) {
 				await prisma.availableTimeSlot.upsert({
 					where: {
 						timeSlot_availableTimeId_companyId: {
@@ -1389,7 +1472,7 @@ app.delete("/available-times/:id", async (req: Request, res: Response) => {
 app.get(
 	"/available-time-slot/company/:id",
 	async (req: Request, res: Response) => {
-		const { id, date } = req.params;
+		const { id } = req.params;
 		const page = parseInt(req.query.page as string) || 1;
 		const limit = parseInt(req.query.limit as string) || 10;
 		const skip = (page - 1) * limit;
@@ -1465,6 +1548,7 @@ app.post(
 				where: {
 					date,
 					companyId: Number(userId),
+					deletedAt: null,
 				},
 			});
 
@@ -1498,9 +1582,36 @@ app.post(
 				return res.status(400).json(errorResponse);
 			}
 
-			const unavailableTimeCreated = await prisma.unavaliableTime.create({
-				data: { date, startTime, endTime, companyId: Number(req.userId) },
+			let unavailableTimeCreated;
+
+			const existingDateDeleted = await prisma.unavaliableTime.findFirst({
+				where: {
+					date,
+					companyId: Number(userId),
+					NOT: {
+						deletedAt: null,
+					},
+				},
 			});
+
+			if (existingDateDeleted) {
+				unavailableTimeCreated = await prisma.unavaliableTime.update({
+					where: { id: existingDateDeleted.id },
+					data: {
+						startTime,
+						endTime,
+						deletedAt: null,
+					},
+				});
+			} else {
+				unavailableTimeCreated = await prisma.unavaliableTime.create({
+					data: { date, startTime, endTime, companyId: Number(req.userId) },
+				});
+			}
+
+			// const unavailableTimeCreated = await prisma.unavaliableTime.create({
+			// 	data: { date, startTime, endTime, companyId: Number(req.userId) },
+			// });
 
 			res.send(unavailableTimeCreated);
 		} catch (err) {

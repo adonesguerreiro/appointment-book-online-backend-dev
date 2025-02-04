@@ -35,7 +35,7 @@ export async function generateAvailableTimes(
 			existingStartTime &&
 			existingEndTime &&
 			currentTime >= existingStartTime &&
-			currentTime < existingEndTime
+			currentTime <= existingEndTime
 		) {
 			currentTime.setTime(existingEndTime.getTime());
 		} else {
