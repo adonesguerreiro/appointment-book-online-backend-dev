@@ -37,7 +37,6 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 app.use(cors());
-app.use(auth);
 
 app.get("/", (req: Request, res: Response) => {
 	const { message } = req.body;
@@ -1281,7 +1280,7 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 			},
 		});
 
-		let avaliableCreated;
+		let avaliableCreated = null;
 
 		if (existingAvailableTimeDeleted) {
 			avaliableCreated = await prisma.availableTime.update({
@@ -1314,26 +1313,24 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 			Number(req.userId)
 		);
 
-		if (avaliableCreated && availableTimeSlotCreated.length === 0) {
-			for (const time of availableTimeSlotCreated) {
-				await prisma.availableTimeSlot.create({
-					data: {
+		for (const time of availableTimeSlotCreated) {
+			await prisma.availableTimeSlot.upsert({
+				where: {
+					timeSlot_availableTimeId_companyId: {
 						timeSlot: time,
 						availableTimeId: Number(avaliableCreated.id),
 						companyId: Number(req.userId),
 					},
-				});
-			}
-		} else {
-			for (const time of availableTimeSlotCreated) {
-				await prisma.availableTimeSlot.updateMany({
-					data: {
-						timeSlot: time,
-						availableTimeId: Number(avaliableCreated.id),
-						companyId: Number(req.userId),
-					},
-				});
-			}
+				},
+				update: {
+					timeSlot: time,
+				},
+				create: {
+					timeSlot: time,
+					availableTimeId: Number(avaliableCreated.id),
+					companyId: Number(req.userId),
+				},
+			});
 		}
 
 		res.send({ avaliableCreated, availableTimeSlotCreated });

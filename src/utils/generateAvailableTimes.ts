@@ -13,35 +13,29 @@ export async function generateAvailableTimes(
 	const currentTime = new Date(`1970-01-01T${startTime}:00`);
 	const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
 
-	const existingAvailableTime = await prisma.availableTime.findFirst({
+	const existingAvailableTimeSlot = await prisma.availableTimeSlot.findMany({
 		where: {
-			day,
-			companyId,
+      companyId,
+			timeSlot: {
+				gte: currentTime.toTimeString().slice(0, 5),
+				lte: endTimeDate.toTimeString().slice(0, 5),
+			}
 		},
 	});
 
-	let existingStartTime = existingAvailableTime
-		? new Date(`1970-01-01T${existingAvailableTime.startTime}:00`)
-		: null;
-	let existingEndTime = existingAvailableTime
-		? new Date(`1970-01-01T${existingAvailableTime.endTime}:00`)
-		: null;
+	const existingTimeStrings = new Set(
+		existingAvailableTimeSlot.map((slot) => slot.timeSlot)
+	);
 
 	while (currentTime <= endTimeDate) {
 		const currentTimeString = currentTime.toTimeString().slice(0, 5);
-
-		if (
-			existingAvailableTime &&
-			existingStartTime &&
-			existingEndTime &&
-			currentTime >= existingStartTime &&
-			currentTime <= existingEndTime
-		) {
-			currentTime.setTime(existingEndTime.getTime());
-		} else {
+		
+		if (!existingTimeStrings.has(currentTimeString)) {
 			timeSlots.push(currentTimeString);
-			currentTime.setMinutes(currentTime.getMinutes() + interval);
 		}
+
+		currentTime.setMinutes(currentTime.getMinutes() + interval);
+		endTime = currentTime.toTimeString().slice(0, 5);
 	}
 
 	return timeSlots;
