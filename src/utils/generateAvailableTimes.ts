@@ -3,7 +3,6 @@ import { DayWeek, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function generateAvailableTimes(
-	day: DayWeek,
 	startTime: string,
 	endTime: string,
 	interval: number,
@@ -29,7 +28,7 @@ export async function generateAvailableTimes(
 
 	while (currentTime <= endTimeDate) {
 		const currentTimeString = currentTime.toTimeString().slice(0, 5);
-		
+
 		if (!existingTimeStrings.has(currentTimeString)) {
 			timeSlots.push(currentTimeString);
 		}

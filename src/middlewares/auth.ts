@@ -34,7 +34,6 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 		});
 
 		req.userId = decoded.id;
-		console.log(req.userId);
 
 		return next();
 	} catch (error) {

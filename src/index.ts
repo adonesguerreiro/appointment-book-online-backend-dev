@@ -1306,7 +1306,6 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 		}
 
 		const availableTimeSlotCreated = await generateAvailableTimes(
-			day,
 			startTime,
 			endTime,
 			interval!,
@@ -1389,7 +1388,6 @@ app.put(
 			});
 
 			const availableTimeSlotUpdated = await generateAvailableTimes(
-				day,
 				startTime,
 				endTime,
 				interval!,
