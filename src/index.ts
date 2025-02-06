@@ -26,7 +26,7 @@ import { sessionSchema } from "./schemas/sessionSchema";
 import { scheduleSchema } from "./schemas/scheduleSchema";
 import { ScheduleData } from "./interfaces/ScheduleData";
 import { handleYupError } from "./utils/handleYupError";
-import { generateAvailableTimes } from "./utils/generateAvailableTimes";
+import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
 
 dotenv.config();
@@ -1305,7 +1305,7 @@ app.post("/available-times", async (req: AvaliableRequest, res: Response) => {
 			});
 		}
 
-		const availableTimeSlotCreated = await generateAvailableTimes(
+		const availableTimeSlotCreated = await generateAvaliableTimes(
 			startTime,
 			endTime,
 			interval!,
@@ -1387,7 +1387,7 @@ app.put(
 				},
 			});
 
-			const availableTimeSlotUpdated = await generateAvailableTimes(
+			const availableTimeSlotUpdated = await generateAvaliableTimes(
 				startTime,
 				endTime,
 				interval!,

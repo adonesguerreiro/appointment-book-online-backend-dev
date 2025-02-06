@@ -2,7 +2,7 @@ import { DayWeek, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function generateAvailableTimes(
+export async function generateAvaliableTimes(
 	startTime: string,
 	endTime: string,
 	interval: number,
