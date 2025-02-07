@@ -618,6 +618,7 @@ app.get("/services/company/:id", async (req: Request, res: Response) => {
 		where: { companyId: parseInt(id), deletedAt: null },
 		skip: skip,
 		take: limit,
+		orderBy: { serviceName: "asc" },
 	});
 
 	res.send({ services, totalPages, currentPage: page });
@@ -791,6 +792,7 @@ app.get("/schedules/company/:id", async (req: Request, res: Response) => {
 			where: { companyId: parseInt(id) },
 			skip,
 			take: limit,
+			orderBy: { date: "asc" },
 		});
 
 		res.send({ schedules, totalPages, currentPage: page });
@@ -1031,6 +1033,7 @@ app.get("/customers/company/:id", async (req: Request, res: Response) => {
 		where: { companyId: parseInt(id), deletedAt: null },
 		skip: skip,
 		take: limit,
+		orderBy: { customerName: "asc" },
 	});
 
 	res.send({ customers, totalPages, currentPage: page });
@@ -1223,6 +1226,7 @@ app.get("/available-times/company/:id", async (req: Request, res: Response) => {
 			where: { companyId: parseInt(id), deletedAt: null },
 			skip: skip,
 			take: limit,
+			orderBy: { day: "asc" },
 		});
 	}
 
@@ -1375,6 +1379,29 @@ app.put(
 				return res.status(400).json(errorResponse);
 			}
 
+			const existingSchedule = await prisma.$queryRaw`
+  SELECT *
+  FROM "Schedule"
+  WHERE
+    "companyId" = ${Number(req.userId)}
+    AND "status" = 'SCHEDULED'
+    AND TO_CHAR("date", 'HH24:MI:SS') BETWEEN ${startTime} AND ${endTime}
+  LIMIT 1;
+`;
+
+			if (existingSchedule) {
+				const errorResponse: ErrorResponse = {
+					errors: [
+						{
+							message:
+								"Já existe um agendamento para este período, não é possível alterar.",
+						},
+					],
+				};
+
+				return res.status(400).json(errorResponse);
+			}
+
 			const avaliableUpdated = await prisma.availableTime.update({
 				where: { id: parseInt(id) },
 				data: {
@@ -1521,6 +1548,7 @@ app.get(
 			where: { companyId: parseInt(id), deletedAt: null },
 			skip: skip,
 			take: limit,
+			orderBy: { date: "asc" },
 		});
 
 		res.send({ unavailableTimes, totalPages, currentPage: page });
@@ -1617,10 +1645,6 @@ app.post(
 					data: { date, startTime, endTime, companyId: Number(req.userId) },
 				});
 			}
-
-			// const unavailableTimeCreated = await prisma.unavaliableTime.create({
-			// 	data: { date, startTime, endTime, companyId: Number(req.userId) },
-			// });
 
 			res.send(unavailableTimeCreated);
 		} catch (err) {

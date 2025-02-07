@@ -12,13 +12,14 @@ export async function generateAvaliableTimes(
 	const currentTime = new Date(`1970-01-01T${startTime}:00`);
 	const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
 
+
 	const existingAvailableTimeSlot = await prisma.availableTimeSlot.findMany({
 		where: {
-      companyId,
+			companyId,
 			timeSlot: {
 				gte: currentTime.toTimeString().slice(0, 5),
 				lte: endTimeDate.toTimeString().slice(0, 5),
-			}
+			},
 		},
 	});
 
@@ -34,7 +35,6 @@ export async function generateAvaliableTimes(
 		}
 
 		currentTime.setMinutes(currentTime.getMinutes() + interval);
-		endTime = currentTime.toTimeString().slice(0, 5);
 	}
 
 	return timeSlots;
