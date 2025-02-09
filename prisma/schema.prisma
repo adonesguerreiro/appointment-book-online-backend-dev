@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -21,8 +15,8 @@ model User {
   specialty String?  @db.VarChar(255)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  company   Company? @relation(fields: [companyId], references: [id])
   companyId Int?
+  company   Company? @relation(fields: [companyId], references: [id])
 }
 
 model Company {
@@ -33,14 +27,14 @@ model Company {
   cnpj              String              @unique @db.VarChar(255)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
-  users             User[]
-  services          Service[]
-  addresses         Address[]
-  schedules         Schedule[]
+  addresses         Address?
+  AvaliableTime     AvaliableTime[]
+  AvaliableTimeSlot AvaliableTimeSlot[]
   customers         Customer[]
-  availableTimes    AvailableTime[]
+  schedules         Schedule[]
+  services          Service[]
   unavailableTimes  UnavaliableTime[]
-  availableTimeSlot AvailableTimeSlot[]
+  users             User[]
 }
 
 model Address {
@@ -54,58 +48,100 @@ model Address {
   postalCode   String   @db.VarChar(255)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  company      Company  @relation(fields: [companyId], references: [id])
   companyId    Int      @unique
+  company      Company  @relation(fields: [companyId], references: [id])
 }
 
 model Service {
   id          Int        @id @default(autoincrement())
-  serviceName String     @db.VarChar(255)
   duration    String     @db.VarChar(255)
   price       Decimal    @db.Decimal(10, 2)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-   deletedAt    DateTime?
-  company     Company    @relation(fields: [companyId], references: [id])
   companyId   Int
+  serviceName String     @db.VarChar(255)
+  deletedAt   DateTime?
   schedules   Schedule[]
+  company     Company    @relation(fields: [companyId], references: [id])
 }
 
 model Schedule {
   id            Int            @id @default(autoincrement())
   date          DateTime
   status        ScheduleStatus @default(SCHEDULED)
-  customer      Customer       @relation(fields: [customerId], references: [id])
   customerId    Int
-  customerName  String
-  customerPhone String
-  service       Service        @relation(fields: [serviceId], references: [id])
   serviceId     Int
-  serviceName   String         @db.VarChar(255)
-  duration      String         @db.VarChar(255)
-  price         Decimal        @db.Decimal(10, 2)
-  company       Company        @relation(fields: [companyId], references: [id])
   companyId     Int
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  customerName  String
+  customerPhone String
+  duration      String         @db.VarChar(255)
+  price         Decimal        @db.Decimal(10, 2)
+  serviceName   String         @db.VarChar(255)
+  company       Company        @relation(fields: [companyId], references: [id])
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  service       Service        @relation(fields: [serviceId], references: [id])
+}
+
+model Customer {
+  id           Int        @id @default(autoincrement())
+  mobile       String     @db.VarChar(255)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  companyId    Int
+  customerName String     @db.VarChar(255)
+  deletedAt    DateTime?
+  company      Company    @relation(fields: [companyId], references: [id])
+  schedules    Schedule[]
+}
+
+model UnavaliableTime {
+  id        Int       @id @default(autoincrement())
+  date      DateTime
+  startTime String    @db.VarChar(255)
+  endTime   String    @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  companyId Int
+  company   Company   @relation(fields: [companyId], references: [id])
+}
+
+model AvaliableTime {
+  id                Int                 @id @default(autoincrement())
+  day               DayWeek?
+  startTime         String              @db.VarChar(255)
+  endTime           String              @db.VarChar(255)
+  interval          Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  companyId         Int
+  period            Period?
+  deletedAt         DateTime?
+  company           Company             @relation(fields: [companyId], references: [id])
+  avaliableTimeSlot AvaliableTimeSlot[]
+
+  @@unique([day, period])
+}
+
+model AvaliableTimeSlot {
+  id              Int           @id @default(autoincrement())
+  timeSlot        String        @db.VarChar(5)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime
+  avaliableTimeId Int
+  companyId       Int
+  AvaliableTime   AvaliableTime @relation(fields: [avaliableTimeId], references: [id])
+  Company         Company       @relation(fields: [companyId], references: [id])
+
+  @@unique([timeSlot, avaliableTimeId, companyId])
 }
 
 enum ScheduleStatus {
   SCHEDULED
   CANCELLED
   ATTENDED
-}
-
-model Customer {
-  id           Int        @id @default(autoincrement())
-  customerName String     @db.VarChar(255)
-  mobile       String     @db.VarChar(255)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  deletedAt    DateTime?
-  schedules    Schedule[]
-  company      Company    @relation(fields: [companyId], references: [id])
-  companyId    Int
 }
 
 enum DayWeek {
@@ -122,46 +158,4 @@ enum Period {
   MORNING
   AFTERNOON
   EVENING
-}
-
-model AvailableTime {
-  id                Int                 @id @default(autoincrement())
-  day               DayWeek?
-  period            Period?
-  startTime         String              @db.VarChar(255)
-  endTime           String              @db.VarChar(255)
-  interval          Int
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  deletedAt         DateTime?
-  company           Company             @relation(fields: [companyId], references: [id])
-  companyId         Int
-  availableTimeSlot AvailableTimeSlot[]
-
-  @@unique([day, period])
-}
-
-model AvailableTimeSlot {
-  id              Int           @id @default(autoincrement())
-  timeSlot        String        @db.VarChar(5)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  availableTime   AvailableTime @relation(fields: [availableTimeId], references: [id])
-  availableTimeId Int
-  company         Company       @relation(fields: [companyId], references: [id])
-  companyId       Int
-
-  @@unique([timeSlot, availableTimeId, companyId])
-}
-
-model UnavaliableTime {
-  id        Int       @id @default(autoincrement())
-  date      DateTime
-  startTime String    @db.VarChar(255)
-  endTime   String    @db.VarChar(255)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  company   Company   @relation(fields: [companyId], references: [id])
-  companyId Int
 }

@@ -1189,7 +1189,7 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 	);
 	const skip = (page - 1) * limit;
 
-	const totalItems = await prisma.availableTime.count({
+	const totalItems = await prisma.avaliableTime.count({
 		where: { companyId: parseInt(id) },
 	});
 
@@ -1205,14 +1205,14 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 		const convertDateDay = await dateConvertDay(date as string);
 		const day = convertDateDay as DayWeek;
 
-		avaliableTimes = await prisma.availableTime.findMany({
+		avaliableTimes = await prisma.avaliableTime.findMany({
 			where: {
 				companyId: parseInt(id),
 				...(day && { day: day as DayWeek }),
 				deletedAt: null,
 			},
 			include: {
-				availableTimeSlot: {
+				avaliableTimeSlot: {
 					orderBy: {
 						timeSlot: "asc",
 					},
@@ -1222,7 +1222,7 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 			take: limit,
 		});
 	} else {
-		avaliableTimes = await prisma.availableTime.findMany({
+		avaliableTimes = await prisma.avaliableTime.findMany({
 			where: { companyId: parseInt(id), deletedAt: null },
 			skip: skip,
 			take: limit,
@@ -1236,7 +1236,7 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 app.get("/avaliable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 
-	const avaliableTimeId = await prisma.availableTime.findUnique({
+	const avaliableTimeId = await prisma.avaliableTime.findUnique({
 		where: { id: parseInt(id) },
 	});
 
@@ -1256,7 +1256,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 	try {
 		await avaliableSchema.validate(req.body, { abortEarly: false });
 
-		const existingAvaliableTime = await prisma.availableTime.findFirst({
+		const existingAvaliableTime = await prisma.avaliableTime.findFirst({
 			where: {
 				day,
 				period,
@@ -1273,7 +1273,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 			return res.status(400).json(errorResponse);
 		}
 
-		const existingAvaliableTimeDeleted = await prisma.availableTime.findFirst({
+		const existingAvaliableTimeDeleted = await prisma.avaliableTime.findFirst({
 			where: {
 				day,
 				period,
@@ -1287,7 +1287,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 		let avaliableCreated = null;
 
 		if (existingAvaliableTimeDeleted) {
-			avaliableCreated = await prisma.availableTime.update({
+			avaliableCreated = await prisma.avaliableTime.update({
 				where: { id: Number(existingAvaliableTimeDeleted.id) },
 				data: {
 					startTime,
@@ -1297,7 +1297,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 				},
 			});
 		} else {
-			avaliableCreated = await prisma.availableTime.create({
+			avaliableCreated = await prisma.avaliableTime.create({
 				data: {
 					day,
 					period,
@@ -1305,6 +1305,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 					endTime,
 					interval,
 					companyId: Number(req.userId),
+					updatedAt: new Date(),
 				},
 			});
 		}
@@ -1317,11 +1318,11 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 		);
 
 		for (const time of avaliableTimeSlotCreated) {
-			await prisma.availableTimeSlot.upsert({
+			await prisma.avaliableTimeSlot.upsert({
 				where: {
-					timeSlot_availableTimeId_companyId: {
+					timeSlot_avaliableTimeId_companyId: {
 						timeSlot: time,
-						availableTimeId: Number(avaliableCreated.id),
+						avaliableTimeId: Number(avaliableCreated.id),
 						companyId: Number(req.userId),
 					},
 				},
@@ -1330,8 +1331,9 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 				},
 				create: {
 					timeSlot: time,
-					availableTimeId: Number(avaliableCreated.id),
+					avaliableTimeId: Number(avaliableCreated.id),
 					companyId: Number(req.userId),
+					updatedAt: new Date(),
 				},
 			});
 		}
@@ -1352,14 +1354,14 @@ app.put(
 		try {
 			await avaliableSchema.validate(req.body, { abortEarly: false });
 
-			const avaliableTimeId = await prisma.availableTime.findUnique({
+			const avaliableTimeId = await prisma.avaliableTime.findUnique({
 				where: { id: parseInt(id) },
 			});
 
 			if (!avaliableTimeId)
 				return res.status(400).send({ error: "Available time not found" });
 
-			const existingAvaliableTime = await prisma.availableTime.findFirst({
+			const existingAvaliableTime = await prisma.avaliableTime.findFirst({
 				where: {
 					NOT: { id: parseInt(id) },
 					day,
@@ -1402,7 +1404,7 @@ app.put(
 				return res.status(400).json(errorResponse);
 			}
 
-			const avaliableUpdated = await prisma.availableTime.update({
+			const avaliableUpdated = await prisma.avaliableTime.update({
 				where: { id: parseInt(id) },
 				data: {
 					day,
@@ -1422,11 +1424,11 @@ app.put(
 			);
 
 			for (const time of availableTimeSlotUpdated) {
-				await prisma.availableTimeSlot.upsert({
+				await prisma.avaliableTimeSlot.upsert({
 					where: {
-						timeSlot_availableTimeId_companyId: {
+						timeSlot_avaliableTimeId_companyId: {
 							timeSlot: time,
-							availableTimeId: Number(avaliableUpdated.id),
+							avaliableTimeId: Number(avaliableUpdated.id),
 							companyId: Number(userId),
 						},
 					},
@@ -1435,8 +1437,9 @@ app.put(
 					},
 					create: {
 						timeSlot: time,
-						availableTimeId: Number(avaliableUpdated.id),
+						avaliableTimeId: Number(avaliableUpdated.id),
 						companyId: Number(userId),
+						updatedAt: new Date(),
 					},
 				});
 			}
@@ -1454,7 +1457,7 @@ app.delete("/avaliable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 	const userId = req.userId;
 
-	const avaliableId = await prisma.availableTime.findUnique({
+	const avaliableId = await prisma.avaliableTime.findUnique({
 		where: { id: parseInt(id) },
 	});
 
@@ -1497,7 +1500,7 @@ app.delete("/avaliable-times/:id", async (req: Request, res: Response) => {
 		return res.status(400).json(errorResponse);
 	}
 
-	const avaliableDeleted = await prisma.availableTime.update({
+	const avaliableDeleted = await prisma.avaliableTime.update({
 		where: { id: parseInt(id) },
 		data: { deletedAt: new Date() },
 	});
@@ -1513,13 +1516,17 @@ app.get(
 		const limit = parseInt(req.query.limit as string) || 10;
 		const skip = (page - 1) * limit;
 
-		const availableTimeSlot = await prisma.availableTimeSlot.findMany({
+		const avaliableTimeSlot = await prisma.avaliableTimeSlot.findMany({
 			where: { companyId: parseInt(id) },
 			skip: skip,
 			take: limit,
 		});
 
-		res.send(availableTimeSlot);
+		if (!avaliableTimeSlot) {
+			return res.status(400).send({ error: "Time not found" });
+		}
+
+		res.send(avaliableTimeSlot);
 	}
 );
 

@@ -12,8 +12,7 @@ export async function generateAvaliableTimes(
 	const currentTime = new Date(`1970-01-01T${startTime}:00`);
 	const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
 
-
-	const existingAvailableTimeSlot = await prisma.availableTimeSlot.findMany({
+	const existingAvailableTimeSlot = await prisma.avaliableTimeSlot.findMany({
 		where: {
 			companyId,
 			timeSlot: {
