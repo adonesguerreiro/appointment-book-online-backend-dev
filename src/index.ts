@@ -1524,7 +1524,7 @@ app.get(
 );
 
 app.get(
-	"/unavailable-times/company/:id",
+	"/unavaliable-times/company/:id",
 	async (req: Request, res: Response) => {
 		const { id } = req.params;
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -1544,28 +1544,28 @@ app.get(
 			return res.status(404).send({ error: "Página não encontrada" });
 		}
 
-		const unavailableTimes = await prisma.unavaliableTime.findMany({
+		const unavaliableTimes = await prisma.unavaliableTime.findMany({
 			where: { companyId: parseInt(id), deletedAt: null },
 			skip: skip,
 			take: limit,
 			orderBy: { date: "asc" },
 		});
 
-		res.send({ unavailableTimes, totalPages, currentPage: page });
+		res.send({ unavaliableTimes, totalPages, currentPage: page });
 	}
 );
 
-app.get("/unavailable-times/:id", async (req: Request, res: Response) => {
+app.get("/unavaliable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 
-	const unavailableTimeId = await prisma.unavaliableTime.findUnique({
+	const unavaliableTimeId = await prisma.unavaliableTime.findUnique({
 		where: { id: parseInt(id), deletedAt: null },
 	});
 
-	if (!unavailableTimeId)
+	if (!unavaliableTimeId)
 		return res.status(400).send({ error: "Unavailable times not found" });
 
-	res.send(unavailableTimeId);
+	res.send(unavaliableTimeId);
 });
 
 interface UnavaliableRequest extends Request {
@@ -1573,7 +1573,7 @@ interface UnavaliableRequest extends Request {
 }
 
 app.post(
-	"/unavailable-times",
+	"/unavaliable-times",
 	async (req: UnavaliableRequest, res: Response) => {
 		const userId = req.userId;
 		const { date, startTime, endTime } = req.body;
@@ -1619,7 +1619,7 @@ app.post(
 				return res.status(400).json(errorResponse);
 			}
 
-			let unavailableTimeCreated;
+			let unavaliableTimeCreated;
 
 			const existingDateDeleted = await prisma.unavaliableTime.findFirst({
 				where: {
@@ -1632,7 +1632,7 @@ app.post(
 			});
 
 			if (existingDateDeleted) {
-				unavailableTimeCreated = await prisma.unavaliableTime.update({
+				unavaliableTimeCreated = await prisma.unavaliableTime.update({
 					where: { id: existingDateDeleted.id },
 					data: {
 						startTime,
@@ -1641,12 +1641,12 @@ app.post(
 					},
 				});
 			} else {
-				unavailableTimeCreated = await prisma.unavaliableTime.create({
+				unavaliableTimeCreated = await prisma.unavaliableTime.create({
 					data: { date, startTime, endTime, companyId: Number(req.userId) },
 				});
 			}
 
-			res.send(unavailableTimeCreated);
+			res.send(unavaliableTimeCreated);
 		} catch (err) {
 			handleYupError(err, res);
 		}
@@ -1654,7 +1654,7 @@ app.post(
 );
 
 app.put(
-	"/unavailable-times/:id",
+	"/unavaliable-times/:id",
 	async (req: UnavaliableRequest, res: Response) => {
 		const { id } = req.params;
 		const { date, startTime, endTime, companyId } = req.body;
@@ -1662,11 +1662,11 @@ app.put(
 		try {
 			await unavaliableSchema.validate(req.body, { abortEarly: false });
 
-			const unavailableTimeId = await prisma.unavaliableTime.findUnique({
+			const unavaliableTimeId = await prisma.unavaliableTime.findUnique({
 				where: { id: parseInt(id) },
 			});
 
-			if (!unavailableTimeId)
+			if (!unavaliableTimeId)
 				return res.status(400).send({ error: "Unavaliable time not found" });
 
 			const existingDate = await prisma.unavaliableTime.findFirst({
@@ -1706,12 +1706,12 @@ app.put(
 				return res.status(400).json(errorResponse);
 			}
 
-			const unavailableUpdated = await prisma.unavaliableTime.update({
+			const unavaliableUpdated = await prisma.unavaliableTime.update({
 				where: { id: parseInt(id) },
 				data: { startTime, endTime, companyId },
 			});
 
-			res.send(unavailableUpdated);
+			res.send(unavaliableUpdated);
 		} catch (err) {
 			handleYupError(err, res);
 		}
@@ -1721,19 +1721,19 @@ app.put(
 app.delete("/unavailable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
 
-	const unavailableTimeId = await prisma.unavaliableTime.findUnique({
+	const unavaliableTimeId = await prisma.unavaliableTime.findUnique({
 		where: { id: parseInt(id) },
 	});
 
-	if (!unavailableTimeId)
+	if (!unavaliableTimeId)
 		return res.status(400).send({ error: "Unavaliable time not found" });
 
-	const unavailableDeleted = await prisma.unavaliableTime.update({
+	const unavaliableDeleted = await prisma.unavaliableTime.update({
 		where: { id: parseInt(id) },
 		data: { deletedAt: new Date() },
 	});
 
-	res.send(unavailableDeleted);
+	res.send(unavaliableDeleted);
 });
 
 app.listen(port, () => {
