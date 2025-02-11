@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { authConfig } from "../config/auth";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 interface TokenPayload {
 	id: string;
@@ -11,6 +14,7 @@ interface TokenPayload {
 declare module "express-serve-static-core" {
 	interface Request {
 		userId?: string;
+		companyId?: number;
 	}
 }
 
@@ -34,6 +38,17 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 		});
 
 		req.userId = decoded.id;
+
+		const user = await prisma.user.findUnique({
+			where: { id: Number(req.userId) },
+			select: { companyId: true },
+		});
+
+		if (user && user.companyId) {
+			req.companyId = user.companyId;
+		} else {
+			return res.status(401).json({ error: "User not found." });
+		}
 
 		return next();
 	} catch (error) {

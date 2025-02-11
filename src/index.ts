@@ -101,18 +101,12 @@ interface UserRequest extends Request {
 app.get(
 	"/dashboard/company/:id/month/:month/year/:year",
 	async (req: Request, res: Response) => {
-		const { id, month, year } = req.params;
+		const { month, year } = req.params;
 
-		if (!id) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "ID da empresa é obrigatório" }],
-			};
-			return res.status(400).json(errorResponse);
-		}
 		const scheduleByStatus = await prisma.schedule.groupBy({
 			by: ["status"],
 			where: {
-				companyId: Number(id),
+				companyId: req.companyId,
 				date: {
 					gte: new Date(`${year}-${month}-01`),
 					lte: new Date(`${year}-${month}-31`),
@@ -128,7 +122,7 @@ app.get(
 );
 
 app.post("/users", async (req: UserRequest, res: Response) => {
-	const { name, email, password, specialty, companyId } = req.body;
+	const { name, email, password, specialty } = req.body;
 	const passwordHash = await bcrypt.hash(password, 10);
 
 	try {
@@ -146,7 +140,13 @@ app.post("/users", async (req: UserRequest, res: Response) => {
 		}
 
 		const userCreated = await prisma.user.create({
-			data: { name, email, password: passwordHash, specialty, companyId },
+			data: {
+				name,
+				email,
+				password: passwordHash,
+				specialty,
+				companyId: req.companyId,
+			},
 		});
 
 		res.send(userCreated);
@@ -227,7 +227,7 @@ app.get("/users/:id", async (req: Request, res: Response) => {
 
 app.put("/users", async (req: UserRequest, res: Response) => {
 	const userId = req.userId;
-	const { name, email, password, newPassword, specialty, companyId } = req.body;
+	const { name, email, password, newPassword, specialty } = req.body;
 
 	try {
 		await userSchema.validate(req.body, { abortEarly: false });
@@ -269,7 +269,7 @@ app.put("/users", async (req: UserRequest, res: Response) => {
 					email,
 					password: newPasswordHash,
 					specialty,
-					companyId: Number(req.userId),
+					companyId: req.companyId,
 				},
 			});
 
@@ -279,7 +279,13 @@ app.put("/users", async (req: UserRequest, res: Response) => {
 		const passwordHash = await bcrypt.hash(password, 10);
 		const userUpdated = await prisma.user.update({
 			where: { id: Number(userId) },
-			data: { name, email, password: passwordHash, specialty, companyId },
+			data: {
+				name,
+				email,
+				password: passwordHash,
+				specialty,
+				companyId: req.companyId,
+			},
 		});
 
 		return res.send(userUpdated);
@@ -444,16 +450,8 @@ interface AddressRequest extends Request {
 }
 
 app.post("/addresses", async (req: AddressRequest, res: Response) => {
-	const {
-		street,
-		number,
-		complement,
-		neighborhood,
-		city,
-		state,
-		postalCode,
-		companyId,
-	} = req.body;
+	const { street, number, complement, neighborhood, city, state, postalCode } =
+		req.body;
 
 	try {
 		await addressSchema.validate(req.body, { abortEarly: false });
@@ -466,6 +464,7 @@ app.post("/addresses", async (req: AddressRequest, res: Response) => {
 				city,
 				state,
 				postalCode,
+				companyId: req.companyId,
 			},
 		});
 
@@ -526,7 +525,7 @@ app.post("/addresses", async (req: AddressRequest, res: Response) => {
 				city,
 				state,
 				postalCode,
-				companyId,
+				companyId: Number(req.companyId),
 			},
 		});
 
@@ -547,7 +546,6 @@ app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 		city,
 		state,
 		postalCode,
-		companyId,
 	} = req.body;
 
 	try {
@@ -569,7 +567,7 @@ app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 				city,
 				state,
 				postalCode,
-				companyId,
+				companyId: Number(req.companyId),
 			},
 		});
 
@@ -595,8 +593,7 @@ app.delete("/addresses/:id", async (req: Request, res: Response) => {
 	res.send(addressDeleted);
 });
 
-app.get("/services/company/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
+app.get("/services", async (req: Request, res: Response) => {
 	const page = Math.max(1, parseInt(req.query.page as string) || 1);
 	const limit = Math.min(
 		100,
@@ -605,7 +602,7 @@ app.get("/services/company/:id", async (req: Request, res: Response) => {
 	const skip = (page - 1) * limit;
 
 	const totalItems = await prisma.service.count({
-		where: { companyId: parseInt(id) },
+		where: { companyId: req.companyId },
 	});
 
 	const totalPages = Math.ceil(totalItems / limit);
@@ -615,7 +612,7 @@ app.get("/services/company/:id", async (req: Request, res: Response) => {
 	}
 
 	const services = await prisma.service.findMany({
-		where: { companyId: parseInt(id), deletedAt: null },
+		where: { companyId: req.companyId, deletedAt: null },
 		skip: skip,
 		take: limit,
 		orderBy: { serviceName: "asc" },
@@ -626,10 +623,9 @@ app.get("/services/company/:id", async (req: Request, res: Response) => {
 
 app.get("/services/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const userId = req.userId;
 
 	const serviceId = await prisma.service.findUnique({
-		where: { id: parseInt(id), companyId: Number(userId) },
+		where: { id: parseInt(id), companyId: req.companyId },
 	});
 
 	if (!serviceId) return res.status(400).send({ error: "Service not found" });
@@ -650,7 +646,7 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 		const existingService = await prisma.service.findFirst({
 			where: {
 				serviceName,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				deletedAt: null,
 			},
 		});
@@ -666,7 +662,7 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 		const existingServiceDeleted = await prisma.service.findFirst({
 			where: {
 				serviceName,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				NOT: {
 					deletedAt: null,
 				},
@@ -682,13 +678,18 @@ app.post("/services", async (req: ServiceRequest, res: Response) => {
 					serviceName,
 					duration,
 					price,
-					companyId: Number(req.userId),
+					companyId: req.companyId,
 					deletedAt: null,
 				},
 			});
 		} else {
 			serviceCreated = await prisma.service.create({
-				data: { serviceName, duration, price, companyId: Number(req.userId) },
+				data: {
+					serviceName,
+					duration,
+					price,
+					companyId: Number(req.companyId),
+				},
 			});
 		}
 
@@ -714,7 +715,7 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 		const existingService = await prisma.service.findFirst({
 			where: {
 				NOT: { id: parseInt(id) },
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				serviceName,
 			},
 		});
@@ -728,7 +729,7 @@ app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
 
 		const serviceUpdated = await prisma.service.update({
 			where: { id: parseInt(id) },
-			data: { serviceName, duration, price, companyId: Number(req.userId) },
+			data: { serviceName, duration, price, companyId: req.companyId },
 		});
 
 		res.send(serviceUpdated);
@@ -768,9 +769,8 @@ app.delete("/services/:id", async (req: Request, res: Response) => {
 	res.send(serviceDeleted);
 });
 
-app.get("/schedules/company/:id", async (req: Request, res: Response) => {
+app.get("/schedules", async (req: Request, res: Response) => {
 	try {
-		const { id } = req.params;
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(
 			100,
@@ -779,7 +779,7 @@ app.get("/schedules/company/:id", async (req: Request, res: Response) => {
 		const skip = (page - 1) * limit;
 
 		const totalItems = await prisma.schedule.count({
-			where: { companyId: parseInt(id) },
+			where: { companyId: req.companyId },
 		});
 
 		const totalPages = Math.ceil(totalItems / limit);
@@ -789,7 +789,7 @@ app.get("/schedules/company/:id", async (req: Request, res: Response) => {
 		}
 
 		const schedules = await prisma.schedule.findMany({
-			where: { companyId: parseInt(id) },
+			where: { companyId: req.companyId },
 			skip,
 			take: limit,
 			orderBy: { date: "asc" },
@@ -804,10 +804,9 @@ app.get("/schedules/company/:id", async (req: Request, res: Response) => {
 
 app.get("/schedules/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const userId = req.userId;
 
 	const scheduleId = await prisma.schedule.findUnique({
-		where: { id: parseInt(id), companyId: Number(userId) },
+		where: { id: parseInt(id), companyId: req.companyId },
 	});
 
 	if (!scheduleId) return res.status(400).send({ error: "Schedule not found" });
@@ -827,7 +826,7 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
 		const existingCustomerId = await prisma.customer.findFirst({
-			where: { id: Number(customerId), companyId: Number(req.userId) },
+			where: { id: Number(customerId), companyId: req.companyId },
 		});
 
 		if (!existingCustomerId) {
@@ -839,7 +838,7 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 		}
 
 		const existingServiceId = await prisma.service.findFirst({
-			where: { id: Number(serviceId), companyId: Number(req.userId) },
+			where: { id: Number(serviceId), companyId: req.companyId },
 		});
 
 		if (!existingServiceId) {
@@ -854,7 +853,7 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 			where: {
 				date: formattedDate,
 				status,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 			},
 		});
 
@@ -875,7 +874,7 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 					gte: startOfDayDate,
 					lte: endOfDayDate,
 				},
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 			},
 		});
 
@@ -903,7 +902,7 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 				serviceName: existingServiceId.serviceName,
 				duration: existingServiceId.duration,
 				price: existingServiceId.price,
-				companyId: Number(req.userId),
+				companyId: Number(req.companyId),
 			},
 		});
 
@@ -923,7 +922,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
 		const existingCustomerId = await prisma.customer.findFirst({
-			where: { id: Number(customerId), companyId: Number(req.userId) },
+			where: { id: Number(customerId), companyId: req.companyId },
 		});
 
 		if (!existingCustomerId) {
@@ -935,7 +934,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 		}
 
 		const existingServiceId = await prisma.service.findFirst({
-			where: { id: Number(serviceId), companyId: Number(req.userId) },
+			where: { id: Number(serviceId), companyId: req.companyId },
 		});
 
 		if (!existingServiceId) {
@@ -950,7 +949,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 			where: {
 				date: formattedDate,
 				status,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 			},
 		});
 
@@ -971,7 +970,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 					gte: startOfDayDate,
 					lte: endOfDayDate,
 				},
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 			},
 		});
 
@@ -1000,7 +999,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 				serviceName: existingServiceId.serviceName,
 				duration: existingServiceId.duration,
 				price: existingServiceId.price,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 			},
 		});
 
@@ -1010,8 +1009,7 @@ app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 	}
 });
 
-app.get("/customers/company/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
+app.get("/customers", async (req: Request, res: Response) => {
 	const page = Math.max(1, parseInt(req.query.page as string) || 1);
 	const limit = Math.min(
 		100,
@@ -1020,7 +1018,7 @@ app.get("/customers/company/:id", async (req: Request, res: Response) => {
 	const skip = (page - 1) * limit;
 
 	const totalItems = await prisma.customer.count({
-		where: { companyId: parseInt(id) },
+		where: { companyId: req.companyId },
 	});
 
 	const totalPages = Math.ceil(totalItems / limit);
@@ -1030,7 +1028,7 @@ app.get("/customers/company/:id", async (req: Request, res: Response) => {
 	}
 
 	const customers = await prisma.customer.findMany({
-		where: { companyId: parseInt(id), deletedAt: null },
+		where: { companyId: req.companyId, deletedAt: null },
 		skip: skip,
 		take: limit,
 		orderBy: { customerName: "asc" },
@@ -1062,7 +1060,7 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 		await customerSchema.validate(req.body, { abortEarly: false });
 
 		const existingCustomer = await prisma.customer.findFirst({
-			where: { mobile, companyId: Number(req.userId), deletedAt: null },
+			where: { mobile, companyId: req.companyId, deletedAt: null },
 		});
 
 		if (existingCustomer) {
@@ -1077,7 +1075,7 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 			where: {
 				customerName,
 				mobile,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				NOT: { deletedAt: null },
 			},
 		});
@@ -1091,12 +1089,12 @@ app.post("/customers", async (req: CustomerRequest, res: Response) => {
 					customerName,
 					mobile,
 					deletedAt: null,
-					companyId: Number(req.userId),
+					companyId: req.companyId,
 				},
 			});
 		} else {
 			customerCreated = await prisma.customer.create({
-				data: { customerName, mobile, companyId: Number(req.userId) },
+				data: { customerName, mobile, companyId: Number(req.companyId) },
 			});
 		}
 
@@ -1123,7 +1121,7 @@ app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 		const existingCustomer = await prisma.customer.findFirst({
 			where: {
 				NOT: { id: parseInt(id) },
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				mobile,
 			},
 		});
@@ -1138,7 +1136,7 @@ app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
 
 		const customer = await prisma.customer.update({
 			where: { id: parseInt(id) },
-			data: { customerName, mobile, companyId: Number(req.userId) },
+			data: { customerName, mobile, companyId: req.companyId },
 		});
 
 		res.send(customer);
@@ -1178,8 +1176,7 @@ app.delete("/customers/:id", async (req: Request, res: Response) => {
 	res.send(customerDeleted);
 });
 
-app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
+app.get("/avaliable-times", async (req: Request, res: Response) => {
 	const { date } = req.query;
 
 	const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -1190,7 +1187,7 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 	const skip = (page - 1) * limit;
 
 	const totalItems = await prisma.avaliableTime.count({
-		where: { companyId: parseInt(id) },
+		where: { companyId: req.companyId },
 	});
 
 	const totalPages = Math.ceil(totalItems / limit);
@@ -1207,7 +1204,7 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 
 		avaliableTimes = await prisma.avaliableTime.findMany({
 			where: {
-				companyId: parseInt(id),
+				companyId: req.companyId,
 				...(day && { day: day as DayWeek }),
 				deletedAt: null,
 			},
@@ -1223,7 +1220,7 @@ app.get("/avaliable-times/company/:id", async (req: Request, res: Response) => {
 		});
 	} else {
 		avaliableTimes = await prisma.avaliableTime.findMany({
-			where: { companyId: parseInt(id), deletedAt: null },
+			where: { companyId: req.companyId, deletedAt: null },
 			skip: skip,
 			take: limit,
 			orderBy: { day: "asc" },
@@ -1260,7 +1257,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 			where: {
 				day,
 				period,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				deletedAt: null,
 			},
 		});
@@ -1277,7 +1274,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 			where: {
 				day,
 				period,
-				companyId: Number(req.userId),
+				companyId: req.companyId,
 				NOT: {
 					deletedAt: null,
 				},
@@ -1304,7 +1301,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 					startTime,
 					endTime,
 					interval,
-					companyId: Number(req.userId),
+					companyId: Number(req.companyId),
 					updatedAt: new Date(),
 				},
 			});
@@ -1314,7 +1311,7 @@ app.post("/avaliable-times", async (req: AvaliableRequest, res: Response) => {
 			startTime,
 			endTime,
 			interval!,
-			Number(req.userId)
+			Number(req.companyId)
 		);
 
 		for (const time of avaliableTimeSlotCreated) {
@@ -1348,7 +1345,6 @@ app.put(
 	"/avaliable-times/:id",
 	async (req: AvaliableRequest, res: Response) => {
 		const { id } = req.params;
-		const userId = req.userId;
 		const { day, period, startTime, endTime, interval } = req.body;
 
 		try {
@@ -1369,7 +1365,7 @@ app.put(
 					startTime,
 					endTime,
 					interval,
-					companyId: Number(userId),
+					companyId: req.companyId,
 				},
 			});
 
@@ -1385,7 +1381,7 @@ app.put(
   SELECT *
   FROM "Schedule"
   WHERE
-    "companyId" = ${Number(req.userId)}
+    "companyId" = ${req.companyId}
     AND "status" = 'SCHEDULED'
     AND TO_CHAR("date", 'HH24:MI:SS') BETWEEN ${startTime} AND ${endTime}
   LIMIT 1;
@@ -1412,7 +1408,7 @@ app.put(
 					period,
 					endTime,
 					interval,
-					companyId: Number(userId),
+					companyId: req.companyId,
 				},
 			});
 
@@ -1420,7 +1416,7 @@ app.put(
 				startTime,
 				endTime,
 				interval!,
-				Number(userId)
+				Number(req.companyId)
 			);
 
 			for (const time of availableTimeSlotUpdated) {
@@ -1429,7 +1425,7 @@ app.put(
 						timeSlot_avaliableTimeId_companyId: {
 							timeSlot: time,
 							avaliableTimeId: Number(avaliableUpdated.id),
-							companyId: Number(userId),
+							companyId: Number(req.companyId),
 						},
 					},
 					update: {
@@ -1438,7 +1434,7 @@ app.put(
 					create: {
 						timeSlot: time,
 						avaliableTimeId: Number(avaliableUpdated.id),
-						companyId: Number(userId),
+						companyId: Number(req.companyId),
 						updatedAt: new Date(),
 					},
 				});
@@ -1455,7 +1451,6 @@ app.put(
 
 app.delete("/avaliable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const userId = req.userId;
 
 	const avaliableId = await prisma.avaliableTime.findUnique({
 		where: { id: parseInt(id) },
@@ -1464,7 +1459,7 @@ app.delete("/avaliable-times/:id", async (req: Request, res: Response) => {
 	if (!avaliableId) return res.status(400).send({ error: "Time not found" });
 
 	const allSchedules = await prisma.schedule.findMany({
-		where: { companyId: Number(userId) },
+		where: { companyId: req.companyId },
 	});
 
 	const scheduleExists = (
@@ -1530,37 +1525,33 @@ app.get(
 	}
 );
 
-app.get(
-	"/unavaliable-times/company/:id",
-	async (req: Request, res: Response) => {
-		const { id } = req.params;
-		const page = Math.max(1, parseInt(req.query.page as string) || 1);
-		const limit = Math.min(
-			100,
-			Math.max(1, parseInt(req.query.limit as string) || 10)
-		);
-		const skip = (page - 1) * limit;
+app.get("/unavaliable-times", async (req: Request, res: Response) => {
+	const page = Math.max(1, parseInt(req.query.page as string) || 1);
+	const limit = Math.min(
+		100,
+		Math.max(1, parseInt(req.query.limit as string) || 10)
+	);
+	const skip = (page - 1) * limit;
 
-		const totalItems = await prisma.unavaliableTime.count({
-			where: { companyId: parseInt(id) },
-		});
+	const totalItems = await prisma.unavaliableTime.count({
+		where: { companyId: req.companyId },
+	});
 
-		const totalPages = Math.ceil(totalItems / limit);
+	const totalPages = Math.ceil(totalItems / limit);
 
-		if (page > totalPages) {
-			return res.status(404).send({ error: "Página não encontrada" });
-		}
-
-		const unavaliableTimes = await prisma.unavaliableTime.findMany({
-			where: { companyId: parseInt(id), deletedAt: null },
-			skip: skip,
-			take: limit,
-			orderBy: { date: "asc" },
-		});
-
-		res.send({ unavaliableTimes, totalPages, currentPage: page });
+	if (page > totalPages) {
+		return res.status(404).send({ error: "Página não encontrada" });
 	}
-);
+
+	const unavaliableTimes = await prisma.unavaliableTime.findMany({
+		where: { companyId: req.companyId, deletedAt: null },
+		skip: skip,
+		take: limit,
+		orderBy: { date: "asc" },
+	});
+
+	res.send({ unavaliableTimes, totalPages, currentPage: page });
+});
 
 app.get("/unavaliable-times/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -1582,7 +1573,6 @@ interface UnavaliableRequest extends Request {
 app.post(
 	"/unavaliable-times",
 	async (req: UnavaliableRequest, res: Response) => {
-		const userId = req.userId;
 		const { date, startTime, endTime } = req.body;
 
 		try {
@@ -1591,7 +1581,7 @@ app.post(
 			const existingDate = await prisma.unavaliableTime.findFirst({
 				where: {
 					date,
-					companyId: Number(userId),
+					companyId: req.companyId,
 					deletedAt: null,
 				},
 			});
@@ -1614,7 +1604,7 @@ app.post(
 						lte: endOfDayDate,
 					},
 					status: "SCHEDULED",
-					companyId: Number(req.userId),
+					companyId: req.companyId,
 				},
 			});
 
@@ -1631,7 +1621,7 @@ app.post(
 			const existingDateDeleted = await prisma.unavaliableTime.findFirst({
 				where: {
 					date,
-					companyId: Number(userId),
+					companyId: req.companyId,
 					NOT: {
 						deletedAt: null,
 					},
@@ -1649,7 +1639,7 @@ app.post(
 				});
 			} else {
 				unavaliableTimeCreated = await prisma.unavaliableTime.create({
-					data: { date, startTime, endTime, companyId: Number(req.userId) },
+					data: { date, startTime, endTime, companyId: Number(req.companyId) },
 				});
 			}
 
@@ -1664,7 +1654,7 @@ app.put(
 	"/unavaliable-times/:id",
 	async (req: UnavaliableRequest, res: Response) => {
 		const { id } = req.params;
-		const { date, startTime, endTime, companyId } = req.body;
+		const { date, startTime, endTime } = req.body;
 
 		try {
 			await unavaliableSchema.validate(req.body, { abortEarly: false });
@@ -1679,7 +1669,7 @@ app.put(
 			const existingDate = await prisma.unavaliableTime.findFirst({
 				where: {
 					date,
-					companyId,
+					companyId: req.companyId,
 				},
 			});
 
@@ -1715,7 +1705,7 @@ app.put(
 
 			const unavaliableUpdated = await prisma.unavaliableTime.update({
 				where: { id: parseInt(id) },
-				data: { startTime, endTime, companyId },
+				data: { date, startTime, endTime },
 			});
 
 			res.send(unavaliableUpdated);
