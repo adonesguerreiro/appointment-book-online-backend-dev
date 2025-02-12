@@ -99,7 +99,7 @@ interface UserRequest extends Request {
 }
 
 app.get(
-	"/dashboard/company/:id/month/:month/year/:year",
+	"/dashboard/month/:month/year/:year",
 	async (req: Request, res: Response) => {
 		const { month, year } = req.params;
 
@@ -213,11 +213,9 @@ app.get("/users", async (req: Request, res: Response) => {
 	res.send(users);
 });
 
-app.get("/users/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
+app.get("/users/id", async (req: Request, res: Response) => {
 	const userId = await prisma.user.findUnique({
-		where: { id: parseInt(id) },
+		where: { id: Number(req.userId) },
 	});
 
 	if (!userId) return res.status(400).send({ error: "User not found" });
@@ -327,11 +325,9 @@ app.get("/companies", async (req: Request, res: Response) => {
 	res.send(companies);
 });
 
-app.get("/companies/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
+app.get("/companies/id", async (req: Request, res: Response) => {
 	const companyId = await prisma.company.findUnique({
-		where: { id: parseInt(id) },
+		where: { id: req.companyId },
 		include: {
 			addresses: true,
 		},
@@ -538,15 +534,8 @@ app.post("/addresses", async (req: AddressRequest, res: Response) => {
 app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
 	const { id } = req.params;
 
-	const {
-		street,
-		number,
-		complement,
-		neighborhood,
-		city,
-		state,
-		postalCode,
-	} = req.body;
+	const { street, number, complement, neighborhood, city, state, postalCode } =
+		req.body;
 
 	try {
 		await addressSchema.validate(req.body, { abortEarly: false });
