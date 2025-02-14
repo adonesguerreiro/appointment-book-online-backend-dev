@@ -28,6 +28,7 @@ import { ScheduleData } from "./interfaces/ScheduleData";
 import { handleYupError } from "./utils/handleYupError";
 import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 
 dotenv.config();
 
@@ -94,32 +95,63 @@ app.post("/sessions", async (req: SessionRequest, res: Response) => {
 	}
 });
 
+app.post("/forgot-password", async (req: Request, res: Response) => {
+	const { email } = req.body;
+	const user = await prisma.user.findUnique({
+		where: { email },
+	});
+
+	if (user) {
+		const token = jwt.sign({ userId: user.id }, authConfig.secret, {
+			expiresIn: "5m",
+		});
+
+		const mailerSend = new MailerSend({
+			apiKey: process.env.API_EMAIL_KEY || "",
+		});
+
+		const sentFrom = new Sender(`${process.env.API_SMTP_KEY}`, "AdthaSoftware");
+
+		const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
+		console.log(recipients[0].name);
+
+		const personalization = [
+			{
+				email: `${user.email}`,
+				data: {
+					user: {
+						name: `${recipients[0].name}`,
+						email: `${recipients[0].email}`,
+					},
+					action_url: `https:localhost:${process.env.PORT}/reset-password?token=${token}`,
+					support_url: "https://wa.me/65996731038",
+					account_name: `${user.name}`,
+				},
+			},
+		];
+
+		const emailParams = new EmailParams()
+			.setFrom(sentFrom)
+			.setTo(recipients)
+			.setSubject("Subject")
+			.setTemplateId("zr6ke4n7e2mgon12")
+			.setPersonalization(personalization);
+
+		try {
+			await mailerSend.email.send(emailParams);
+			res.status(200).send({ message: "Email enviado com sucesso." });
+		} catch (error) {
+			console.error("Error sending email:", error);
+			res.status(500).send({ error: "Erro ao enviar o email." });
+		}
+	} else {
+		res.status(404).send({ error: "Verifique o email e tente novamente." });
+	}
+});
+
 interface UserRequest extends Request {
 	body: UserData;
 }
-
-app.get(
-	"/dashboard/month/:month/year/:year",
-	async (req: Request, res: Response) => {
-		const { month, year } = req.params;
-
-		const scheduleByStatus = await prisma.schedule.groupBy({
-			by: ["status"],
-			where: {
-				companyId: req.companyId,
-				date: {
-					gte: new Date(`${year}-${month}-01`),
-					lte: new Date(`${year}-${month}-31`),
-				},
-			},
-			_count: {
-				status: true,
-			},
-		});
-
-		res.send({ scheduleByStatus });
-	}
-);
 
 app.post("/users", async (req: UserRequest, res: Response) => {
 	const { name, email, password, specialty } = req.body;
@@ -199,6 +231,29 @@ app.post("/companies", async (req: CompanyRequest, res: Response) => {
 });
 
 app.use(auth);
+
+app.get(
+	"/dashboard/month/:month/year/:year",
+	async (req: Request, res: Response) => {
+		const { month, year } = req.params;
+
+		const scheduleByStatus = await prisma.schedule.groupBy({
+			by: ["status"],
+			where: {
+				companyId: req.companyId,
+				date: {
+					gte: new Date(`${year}-${month}-01`),
+					lte: new Date(`${year}-${month}-31`),
+				},
+			},
+			_count: {
+				status: true,
+			},
+		});
+
+		res.send({ scheduleByStatus });
+	}
+);
 
 app.get("/users", async (req: Request, res: Response) => {
 	const page = parseInt(req.query.page as string) || 1;
@@ -807,9 +862,9 @@ interface ScheduleRequest extends Request {
 	body: ScheduleData;
 }
 app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
-	const { date, timeSlotAvailable, status, customerId, serviceId } = req.body;
+	const { date, timeSlotAvaliable, status, customerId, serviceId } = req.body;
 
-	const formattedDate = date.split("T")[0] + `T${timeSlotAvailable}:00.000Z`;
+	const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
 
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
@@ -903,9 +958,9 @@ app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
 
 app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
 	const { id } = req.params;
-	const { date, timeSlotAvailable, status, customerId, serviceId } = req.body;
+	const { date, timeSlotAvaliable, status, customerId, serviceId } = req.body;
 
-	const formattedDate = date.split("T")[0] + `T${timeSlotAvailable}:00.000Z`;
+	const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
 
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });

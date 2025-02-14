@@ -5,4 +5,5 @@ export const scheduleSchema = yup.object().shape({
 	status: yup.string().oneOf(["SCHEDULED", "CANCELLED", "ATTENDED"]),
 	customerId: yup.string().required("Customer Id is required"),
 	serviceId: yup.string().required("Service Id is required"),
+	timeSlotAvaliable: yup.string().required("Time slot is required"),
 });
