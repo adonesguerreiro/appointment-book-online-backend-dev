@@ -123,7 +123,7 @@ app.post("/forgot-password", async (req: Request, res: Response) => {
 						name: `${recipients[0].name}`,
 						email: `${recipients[0].email}`,
 					},
-					action_url: `https:localhost:${process.env.PORT}/reset-password?token=${token}`,
+					action_url: `http://localhost:5173/reset-password?token=${token}`,
 					support_url: "https://wa.me/65996731038",
 					account_name: `${user.name}`,
 				},
@@ -146,6 +146,38 @@ app.post("/forgot-password", async (req: Request, res: Response) => {
 		}
 	} else {
 		res.status(404).send({ error: "Verifique o email e tente novamente." });
+	}
+});
+
+app.post("/reset-password", async (req: Request, res: Response) => {
+	const { newPassword } = req.body;
+	const token = req.query.token as string;
+	try {
+		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
+		if (!payload) {
+			res.status(401).send({ error: "Token inválido ou expirado." });
+			return;
+		}
+
+		const user = await prisma.user.findUnique({
+			where: { id: payload.userId },
+		});
+
+		if (!user) {
+			res.status(401).send({ error: "Token inválido ou expirado." });
+			return;
+		}
+
+		const passwordHash = await bcrypt.hash(newPassword, 10);
+		await prisma.user.update({
+			where: { id: payload.userId },
+			data: { password: passwordHash },
+		});
+
+		res.status(200).send({ message: "Senha resetada com sucesso." });
+	} catch (error) {
+		console.error("Error reset password:", error);
+		res.status(500).send({ error: "Erro ao resetar a senha." });
 	}
 });
 
