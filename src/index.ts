@@ -123,7 +123,7 @@ app.post("/forgot-password", async (req: Request, res: Response) => {
 						name: `${recipients[0].name}`,
 						email: `${recipients[0].email}`,
 					},
-					action_url: `http://localhost:5173/reset-password?token=${token}`,
+					action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
 					support_url: "https://wa.me/65996731038",
 					account_name: `${user.name}`,
 				},
@@ -139,14 +139,21 @@ app.post("/forgot-password", async (req: Request, res: Response) => {
 
 		try {
 			await mailerSend.email.send(emailParams);
-			res.status(200).send({ message: "Email enviado com sucesso." });
+			res.status(200).send({
+				message: "Email enviado com sucesso, verifique sua caixa de entrada.",
+			});
 		} catch (error) {
 			console.error("Error sending email:", error);
-			res.status(500).send({ error: "Erro ao enviar o email." });
+			res
+				.status(500)
+				.send({ error: "Erro ao enviar o email, tente novamente." });
 		}
-	} else {
-		res.status(404).send({ error: "Verifique o email e tente novamente." });
 	}
+
+	res.status(200).send({
+		message:
+			"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
+	});
 });
 
 app.post("/reset-password", async (req: Request, res: Response) => {
