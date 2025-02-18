@@ -13,6 +13,7 @@ model User {
   email     String   @unique @db.VarChar(255)
   password  String   @db.VarChar(255)
   specialty String?  @db.VarChar(255)
+  blocked   Boolean? @db.Boolean
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   companyId Int?

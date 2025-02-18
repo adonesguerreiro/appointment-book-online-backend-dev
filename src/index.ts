@@ -63,8 +63,20 @@ app.post("/sessions", async (req: SessionRequest, res: Response) => {
 
 		if (!existingUser) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "User not found." }],
+				errors: [{ message: "Usuário não encontrado." }],
 			};
+			return res.status(401).json(errorResponse);
+		}
+
+		if (existingUser.blocked === true) {
+			const errorResponse: ErrorResponse = {
+				errors: [
+					{
+						message: "Usuário está sem acesso, entre em contato com o suporte.",
+					},
+				],
+			};
+
 			return res.status(401).json(errorResponse);
 		}
 
@@ -75,7 +87,7 @@ app.post("/sessions", async (req: SessionRequest, res: Response) => {
 
 		if (!isPasswordValid) {
 			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Invalid password" }],
+				errors: [{ message: "Senha inválida." }],
 			};
 			return res.status(401).json(errorResponse);
 		}
