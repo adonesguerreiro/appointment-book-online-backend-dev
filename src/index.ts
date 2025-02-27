@@ -29,6 +29,9 @@ import { handleYupError } from "./utils/handleYupError";
 import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
 import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
+import { v2 as cloudinary } from "cloudinary";
+import multer from "multer";
+import fs from "fs";
 
 dotenv.config();
 
@@ -283,6 +286,58 @@ app.post("/companies", async (req: CompanyRequest, res: Response) => {
 
 app.use(auth);
 
+const upload = multer({ dest: "uploads/" });
+
+cloudinary.config({
+	cloud_name: `${process.env.CLOUD_NAME_CLOUDNARY}`,
+	api_key: `${process.env.API_KEY_CLOUDNARY}`,
+	api_secret: `${process.env.API_SECRET_KEY_CLOUDNARY}`,
+});
+
+app.put(
+	"/upload",
+	upload.single("avatarUrl"),
+	async (req: Request, res: Response) => {
+		const file = req.file;
+
+		if (!file) {
+			return res.status(400).json({ error: "No file uploaded" });
+		}
+
+		const existingUserAvatar = await prisma.user.findUnique({
+			where: { id: Number(req.userId) },
+		});
+
+		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
+			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
+		}
+		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
+			folder: "profilePhotoUsers",
+			overwrite: true,
+		});
+		fs.unlinkSync(file?.path!);
+
+		// const cloudinaryResponse = await cloudinary.uploader.upload(avatarUrl!, {
+		// 	folder: "profilePhotoUsers",
+		// 	resource_type: "image",
+		// 	overwrite: true,
+		// });
+
+		// cloudinary.uploader.update_metadata(avatarUrl!, [cloudinaryResponse]);
+
+		const userUpdated = await prisma.user.update({
+			where: { id: Number(req.userId) },
+			data: {
+				avatarUrl: cloudinaryResponse.secure_url,
+				avatarPublicId: cloudinaryResponse.public_id,
+				companyId: req.companyId,
+			},
+		});
+
+		res.send(userUpdated);
+	}
+);
+
 app.get(
 	"/dashboard/month/:month/year/:year",
 	async (req: Request, res: Response) => {
@@ -329,74 +384,93 @@ app.get("/users/id", async (req: Request, res: Response) => {
 	res.send(userId);
 });
 
-app.put("/users", async (req: UserRequest, res: Response) => {
-	const userId = req.userId;
-	const { name, email, password, newPassword, specialty } = req.body;
+app.put(
+	"/users",
 
-	try {
-		await userSchema.validate(req.body, { abortEarly: false });
+	async (req: UserRequest, res: Response) => {
+		const userId = req.userId;
+		const { name, email, password, newPassword, specialty } = req.body;
+		try {
+			await userSchema.validate(req.body, { abortEarly: false });
 
-		const existingUser = await prisma.user.findUnique({
-			where: {
-				email,
-				NOT: { id: Number(userId) },
-			},
-		});
+			const existingUser = await prisma.user.findUnique({
+				where: {
+					email,
+					NOT: { id: Number(userId) },
+				},
+			});
 
-		if (email === existingUser?.email && !newPassword) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email já está em uso" }],
-			};
-			return res.status(400).json(errorResponse);
-		}
+			const existingUserPassword = await prisma.user.findUnique({
+				where: { id: Number(userId) },
+			});
 
-		if (newPassword) {
-			const passwordMatch = await bcrypt.compare(
+			const isPasswordValid = await bcrypt.compare(
 				password,
-				existingUser!.password
+				existingUserPassword!.password
 			);
 
-			if (!passwordMatch) {
+			if (!isPasswordValid) {
 				const errorResponse: ErrorResponse = {
 					errors: [{ message: "Senha atual incorreta" }],
 				};
 				return res.status(400).json(errorResponse);
 			}
 
-			const newPasswordHash = await bcrypt.hash(newPassword, 10);
-			existingUser!.password = newPasswordHash;
+			if (email === existingUser?.email && !newPassword) {
+				const errorResponse: ErrorResponse = {
+					errors: [{ message: "Email já está em uso" }],
+				};
+				return res.status(400).json(errorResponse);
+			}
 
+			if (newPassword) {
+				const passwordMatch = await bcrypt.compare(
+					password,
+					existingUser!.password
+				);
+
+				if (!passwordMatch) {
+					const errorResponse: ErrorResponse = {
+						errors: [{ message: "Senha atual incorreta" }],
+					};
+					return res.status(400).json(errorResponse);
+				}
+
+				const newPasswordHash = await bcrypt.hash(newPassword, 10);
+				existingUser!.password = newPasswordHash;
+
+				const userUpdated = await prisma.user.update({
+					where: { id: Number(userId) },
+					data: {
+						name,
+						email,
+						password: newPasswordHash,
+						specialty,
+						companyId: req.companyId,
+					},
+				});
+
+				return res.send(userUpdated);
+			}
+
+			const passwordHash = await bcrypt.hash(password, 10);
 			const userUpdated = await prisma.user.update({
 				where: { id: Number(userId) },
 				data: {
 					name,
 					email,
-					password: newPasswordHash,
+					password: passwordHash,
 					specialty,
 					companyId: req.companyId,
 				},
 			});
 
 			return res.send(userUpdated);
+		} catch (err) {
+			handleYupError(err, res);
 		}
-
-		const passwordHash = await bcrypt.hash(password, 10);
-		const userUpdated = await prisma.user.update({
-			where: { id: Number(userId) },
-			data: {
-				name,
-				email,
-				password: passwordHash,
-				specialty,
-				companyId: req.companyId,
-			},
-		});
-
-		return res.send(userUpdated);
-	} catch (err) {
-		handleYupError(err, res);
 	}
-});
+);
 
 app.delete("/users/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
