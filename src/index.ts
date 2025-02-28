@@ -29,7 +29,7 @@ import { handleYupError } from "./utils/handleYupError";
 import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
 import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "./config/cloudinary";
 import multer from "multer";
 import fs from "fs";
 
@@ -288,12 +288,6 @@ app.use(auth);
 
 const upload = multer({ dest: "uploads/" });
 
-cloudinary.config({
-	cloud_name: `${process.env.CLOUD_NAME_CLOUDNARY}`,
-	api_key: `${process.env.API_KEY_CLOUDNARY}`,
-	api_secret: `${process.env.API_SECRET_KEY_CLOUDNARY}`,
-});
-
 app.put(
 	"/upload",
 	upload.single("avatarUrl"),
@@ -317,20 +311,11 @@ app.put(
 		});
 		fs.unlinkSync(file?.path!);
 
-		// const cloudinaryResponse = await cloudinary.uploader.upload(avatarUrl!, {
-		// 	folder: "profilePhotoUsers",
-		// 	resource_type: "image",
-		// 	overwrite: true,
-		// });
-
-		// cloudinary.uploader.update_metadata(avatarUrl!, [cloudinaryResponse]);
-
 		const userUpdated = await prisma.user.update({
 			where: { id: Number(req.userId) },
 			data: {
 				avatarUrl: cloudinaryResponse.secure_url,
 				avatarPublicId: cloudinaryResponse.public_id,
-				companyId: req.companyId,
 			},
 		});
 
