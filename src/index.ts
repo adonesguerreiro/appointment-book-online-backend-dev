@@ -308,6 +308,7 @@ app.put(
 		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
 			folder: "profilePhotoUsers",
 			overwrite: true,
+			format: "webp",
 		});
 		fs.unlinkSync(file?.path!);
 
