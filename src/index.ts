@@ -19,19 +19,18 @@ import { CustomerData } from "./interfaces/CustomerData";
 import { AvailableTimeData } from "./interfaces/AvailableTimeData";
 import { UnavaliableData } from "./interfaces/UnavaliableData";
 import jwt from "jsonwebtoken";
-import { authConfig } from "./config/auth";
 import auth from "./middlewares/auth";
-import { SessionData } from "./interfaces/SessionData";
-import { sessionSchema } from "./schemas/sessionSchema";
 import { scheduleSchema } from "./schemas/scheduleSchema";
 import { ScheduleData } from "./interfaces/ScheduleData";
 import { handleYupError } from "./utils/handleYupError";
 import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 import cloudinary from "./config/cloudinary";
 import multer from "multer";
 import fs from "fs";
+import { sessions } from "./modules/auth/auth.controller";
+import { forgotPassword } from "./modules/auth/forgotPassword.controller";
+import { resetPassword } from "./modules/auth/resetPassword.controller";
 
 dotenv.config();
 
@@ -50,239 +49,111 @@ app.get("/", (req: Request, res: Response) => {
 	res.send({ message });
 });
 
-interface SessionRequest extends Request {
-	body: SessionData;
-}
+app.post("/sessions", sessions);
+app.post("/forgot-password", forgotPassword);
+app.post("/reset-password", resetPassword);
 
-app.post("/sessions", async (req: SessionRequest, res: Response) => {
-	const { email, password } = req.body;
+// 	try {
+// 		const { email } = req.body;
+// 		const user = await prisma.user.findUnique({
+// 			where: { email },
+// 		});
 
-	try {
-		await sessionSchema.validate(req.body, { abortEarly: false });
+// 		if (user) {
+// 			const token = jwt.sign({ userId: user.id }, authConfig.secret, {
+// 				expiresIn: "5m",
+// 			});
 
-		const existingUser = await prisma.user.findUnique({
-			where: { email },
-		});
+// 			const mailerSend = new MailerSend({
+// 				apiKey: process.env.API_EMAIL_KEY || "",
+// 			});
 
-		if (!existingUser) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Usuário não encontrado." }],
-			};
-			return res.status(401).json(errorResponse);
-		}
+// 			const sentFrom = new Sender(
+// 				`${process.env.API_SMTP_KEY}`,
+// 				"AdthaSoftware"
+// 			);
 
-		if (existingUser.blocked === true) {
-			const errorResponse: ErrorResponse = {
-				errors: [
-					{
-						message: "Usuário está sem acesso, entre em contato com o suporte.",
-					},
-				],
-			};
+// 			const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
+// 			console.log(recipients[0].name);
 
-			return res.status(401).json(errorResponse);
-		}
+// 			const personalization = [
+// 				{
+// 					email: `${user.email}`,
+// 					data: {
+// 						user: {
+// 							name: `${recipients[0].name}`,
+// 							email: `${recipients[0].email}`,
+// 						},
+// 						action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
+// 						support_url: "https://wa.me/65996731038",
+// 						account_name: `${user.name}`,
+// 					},
+// 				},
+// 			];
 
-		const isPasswordValid = await bcrypt.compare(
-			password,
-			existingUser.password
-		);
+// 			const emailParams = new EmailParams()
+// 				.setFrom(sentFrom)
+// 				.setTo(recipients)
+// 				.setSubject("Subject")
+// 				.setTemplateId("zr6ke4n7e2mgon12")
+// 				.setPersonalization(personalization);
 
-		if (!isPasswordValid) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Senha inválida." }],
-			};
-			return res.status(401).json(errorResponse);
-		}
+// 			try {
+// 				await mailerSend.email.send(emailParams);
+// 				res.status(200).send({
+// 					message: "Email enviado com sucesso, verifique sua caixa de entrada.",
+// 				});
+// 			} catch (error) {
+// 				console.error("Error sending email:", error);
+// 				res
+// 					.status(500)
+// 					.send({ error: "Erro ao enviar o email, tente novamente." });
+// 			}
+// 		}
 
-		const { id, name } = existingUser;
+// 		res.status(200).send({
+// 			message:
+// 				"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
+// 		});
+// 	} catch (err) {
+// 		handleYupError(err, res);
+// 	}
+// });
 
-		return res.json({
-			existingUser: id,
-			name,
-			email,
-			token: jwt.sign({ id }, authConfig.secret, {
-				expiresIn: authConfig.expiresIn,
-			}),
-		});
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
+// app.post("/reset-password", async (req: Request, res: Response) => {
+// 	const { newPassword } = req.body;
+// 	const token = req.query.token as string;
+// 	try {
+// 		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
+// 		if (!payload) {
+// 			res.status(401).send({ error: "Token inválido ou expirado." });
+// 			return;
+// 		}
 
-app.post("/forgot-password", async (req: Request, res: Response) => {
-	const { email } = req.body;
-	const user = await prisma.user.findUnique({
-		where: { email },
-	});
+// 		const user = await prisma.user.findUnique({
+// 			where: { id: payload.userId },
+// 		});
 
-	if (user) {
-		const token = jwt.sign({ userId: user.id }, authConfig.secret, {
-			expiresIn: "5m",
-		});
+// 		if (!user) {
+// 			res.status(401).send({ error: "Token inválido ou expirado." });
+// 			return;
+// 		}
 
-		const mailerSend = new MailerSend({
-			apiKey: process.env.API_EMAIL_KEY || "",
-		});
+// 		const passwordHash = await bcrypt.hash(newPassword, 10);
+// 		await prisma.user.update({
+// 			where: { id: payload.userId },
+// 			data: { password: passwordHash },
+// 		});
 
-		const sentFrom = new Sender(`${process.env.API_SMTP_KEY}`, "AdthaSoftware");
-
-		const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
-		console.log(recipients[0].name);
-
-		const personalization = [
-			{
-				email: `${user.email}`,
-				data: {
-					user: {
-						name: `${recipients[0].name}`,
-						email: `${recipients[0].email}`,
-					},
-					action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
-					support_url: "https://wa.me/65996731038",
-					account_name: `${user.name}`,
-				},
-			},
-		];
-
-		const emailParams = new EmailParams()
-			.setFrom(sentFrom)
-			.setTo(recipients)
-			.setSubject("Subject")
-			.setTemplateId("zr6ke4n7e2mgon12")
-			.setPersonalization(personalization);
-
-		try {
-			await mailerSend.email.send(emailParams);
-			res.status(200).send({
-				message: "Email enviado com sucesso, verifique sua caixa de entrada.",
-			});
-		} catch (error) {
-			console.error("Error sending email:", error);
-			res
-				.status(500)
-				.send({ error: "Erro ao enviar o email, tente novamente." });
-		}
-	}
-
-	res.status(200).send({
-		message:
-			"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
-	});
-});
-
-app.post("/reset-password", async (req: Request, res: Response) => {
-	const { newPassword } = req.body;
-	const token = req.query.token as string;
-	try {
-		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
-		if (!payload) {
-			res.status(401).send({ error: "Token inválido ou expirado." });
-			return;
-		}
-
-		const user = await prisma.user.findUnique({
-			where: { id: payload.userId },
-		});
-
-		if (!user) {
-			res.status(401).send({ error: "Token inválido ou expirado." });
-			return;
-		}
-
-		const passwordHash = await bcrypt.hash(newPassword, 10);
-		await prisma.user.update({
-			where: { id: payload.userId },
-			data: { password: passwordHash },
-		});
-
-		res.status(200).send({ message: "Senha resetada com sucesso." });
-	} catch (error) {
-		console.error("Error reset password:", error);
-		res.status(500).send({ error: "Erro ao resetar a senha." });
-	}
-});
+// 		res.status(200).send({ message: "Senha resetada com sucesso." });
+// 	} catch (err) {
+// 		handleYupError(err, res);
+// 	}
+// });
 
 interface UserRequest extends Request {
 	body: UserData;
 }
-
-app.post("/users", async (req: UserRequest, res: Response) => {
-	const { name, email, password, specialty } = req.body;
-	const passwordHash = await bcrypt.hash(password, 10);
-
-	try {
-		await userSchema.validate(req.body, { abortEarly: false });
-
-		const existingUser = await prisma.user.findUnique({
-			where: { email },
-		});
-
-		if (existingUser) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email already in use" }],
-			};
-			return res.status(400).json(errorResponse);
-		}
-
-		const userCreated = await prisma.user.create({
-			data: {
-				name,
-				email,
-				password: passwordHash,
-				specialty,
-				companyId: req.companyId,
-			},
-		});
-
-		res.send(userCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.post("/companies", async (req: CompanyRequest, res: Response) => {
-	const { name, mobile, email, cnpj } = req.body;
-
-	try {
-		await companySchema.validate(req.body, { abortEarly: false });
-
-		const existingCompany = await prisma.company.findFirst({
-			where: { OR: [{ mobile }, { email }, { cnpj }] },
-		});
-
-		if (existingCompany?.mobile) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.email) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.cnpj) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-		const companyCreated = await prisma.company.create({
-			data: { name, mobile, email, cnpj },
-		});
-
-		res.send(companyCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
 
 app.use(auth);
 
@@ -368,6 +239,40 @@ app.get("/users/id", async (req: Request, res: Response) => {
 	if (!userId) return res.status(400).send({ error: "User not found" });
 
 	res.send(userId);
+});
+
+app.post("/users", async (req: UserRequest, res: Response) => {
+	const { name, email, password, specialty } = req.body;
+	const passwordHash = await bcrypt.hash(password, 10);
+
+	try {
+		await userSchema.validate(req.body, { abortEarly: false });
+
+		const existingUser = await prisma.user.findUnique({
+			where: { email },
+		});
+
+		if (existingUser) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Email já está em uso." }],
+			};
+			return res.status(400).json(errorResponse);
+		}
+
+		const userCreated = await prisma.user.create({
+			data: {
+				name,
+				email,
+				password: passwordHash,
+				specialty,
+				companyId: req.companyId,
+			},
+		});
+
+		res.send(userCreated);
+	} catch (err) {
+		handleYupError(err, res);
+	}
 });
 
 app.put(
@@ -502,6 +407,49 @@ app.get("/companies/id", async (req: Request, res: Response) => {
 	if (!companyId) return res.status(400).send({ error: "Company not found" });
 
 	res.send(companyId);
+});
+
+app.post("/companies", async (req: CompanyRequest, res: Response) => {
+	const { name, mobile, email, cnpj, slug } = req.body;
+
+	try {
+		await companySchema.validate(req.body, { abortEarly: false });
+
+		const existingCompany = await prisma.company.findFirst({
+			where: { OR: [{ mobile }, { email }, { cnpj }] },
+		});
+
+		if (existingCompany?.mobile) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Mobile number already in use" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
+		if (existingCompany?.email) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Mobile number already in use" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+
+		if (existingCompany?.cnpj) {
+			const errorResponse: ErrorResponse = {
+				errors: [{ message: "Mobile number already in use" }],
+			};
+
+			return res.status(400).json(errorResponse);
+		}
+		const companyCreated = await prisma.company.create({
+			data: { name, mobile, email, cnpj, slug },
+		});
+
+		res.send(companyCreated);
+	} catch (err) {
+		handleYupError(err, res);
+	}
 });
 
 app.put("/companies", async (req: CompanyRequest, res: Response) => {

@@ -6,5 +6,4 @@ export interface UserData {
 	specialty: string;
 	companyId: number;
 	avatarUrl?: string;
-	
 }

@@ -20,6 +20,7 @@
 		"@types/jsonwebtoken": "^9.0.6",
 		"@types/multer": "^1.4.12",
 		"@types/node": "^22.13.4",
+		"@types/slug": "^5.0.9",
 		"nodemon": "^3.1.4",
 		"prisma": "^5.17.0",
 		"rimraf": "^6.0.1",
@@ -38,6 +39,7 @@
 		"jsonwebtoken": "^9.0.2",
 		"mailersend": "^2.3.0",
 		"multer": "^1.4.5-lts.1",
+		"slug": "^10.0.0",
 		"yup": "^1.4.0"
 	},
 	"prisma": {

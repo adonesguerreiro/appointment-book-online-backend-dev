@@ -5,4 +5,5 @@ export interface CompanyData {
 	mobile: string;
 	email: string;
 	cnpj: string;
+	slug: string;
 }
