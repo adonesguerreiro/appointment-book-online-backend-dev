@@ -7,8 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { SessionData } from "../../interfaces/SessionData";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../config/prisma";
 
 interface SessionRequest extends Request {
 	body: SessionData;

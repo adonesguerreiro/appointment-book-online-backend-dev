@@ -2,10 +2,8 @@ import { authConfig } from "../../config/auth";
 import { handleYupError } from "../../utils/handleYupError";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../config/prisma";
 
 export const resetPassword = async (req: Request, res: Response) => {
 	const { newPassword } = req.body;

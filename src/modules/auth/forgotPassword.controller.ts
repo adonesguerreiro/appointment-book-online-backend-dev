@@ -2,10 +2,8 @@ import { MailerSend, Sender, Recipient, EmailParams } from "mailersend";
 import { authConfig } from "../../config/auth";
 import { handleYupError } from "../../utils/handleYupError";
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../config/prisma";
 
 export const forgotPassword = async (req: Request, res: Response) => {
 	try {

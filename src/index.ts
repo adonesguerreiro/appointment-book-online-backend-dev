@@ -18,7 +18,6 @@ import { ServiceData } from "./interfaces/ServiceData";
 import { CustomerData } from "./interfaces/CustomerData";
 import { AvailableTimeData } from "./interfaces/AvailableTimeData";
 import { UnavaliableData } from "./interfaces/UnavaliableData";
-import jwt from "jsonwebtoken";
 import auth from "./middlewares/auth";
 import { scheduleSchema } from "./schemas/scheduleSchema";
 import { ScheduleData } from "./interfaces/ScheduleData";
@@ -31,6 +30,7 @@ import fs from "fs";
 import { sessions } from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
+import * as usersControllers from "./modules/users/users.controller";
 
 dotenv.config();
 
@@ -157,6 +157,12 @@ interface UserRequest extends Request {
 
 app.use(auth);
 
+// Usuário
+app.get("/users", usersControllers.getAllUsers);
+app.get("/users/id", usersControllers.getUserById);
+app.post("/users", usersControllers.createUser);
+app.put("/users", usersControllers.updateUser);
+
 const upload = multer({ dest: "uploads/" });
 
 app.put(
@@ -217,167 +223,6 @@ app.get(
 		res.send({ scheduleByStatus });
 	}
 );
-
-app.get("/users", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
-
-	const users = await prisma.user.findMany({
-		skip: skip,
-		take: limit,
-	});
-
-	res.send(users);
-});
-
-app.get("/users/id", async (req: Request, res: Response) => {
-	const userId = await prisma.user.findUnique({
-		where: { id: Number(req.userId) },
-	});
-
-	if (!userId) return res.status(400).send({ error: "User not found" });
-
-	res.send(userId);
-});
-
-app.post("/users", async (req: UserRequest, res: Response) => {
-	const { name, email, password, specialty } = req.body;
-	const passwordHash = await bcrypt.hash(password, 10);
-
-	try {
-		await userSchema.validate(req.body, { abortEarly: false });
-
-		const existingUser = await prisma.user.findUnique({
-			where: { email },
-		});
-
-		if (existingUser) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email já está em uso." }],
-			};
-			return res.status(400).json(errorResponse);
-		}
-
-		const userCreated = await prisma.user.create({
-			data: {
-				name,
-				email,
-				password: passwordHash,
-				specialty,
-				companyId: req.companyId,
-			},
-		});
-
-		res.send(userCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.put(
-	"/users",
-
-	async (req: UserRequest, res: Response) => {
-		const userId = req.userId;
-		const { name, email, password, newPassword, specialty } = req.body;
-		try {
-			await userSchema.validate(req.body, { abortEarly: false });
-
-			const existingUser = await prisma.user.findUnique({
-				where: {
-					email,
-					NOT: { id: Number(userId) },
-				},
-			});
-
-			const existingUserPassword = await prisma.user.findUnique({
-				where: { id: Number(userId) },
-			});
-
-			const isPasswordValid = await bcrypt.compare(
-				password,
-				existingUserPassword!.password
-			);
-
-			if (!isPasswordValid) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Senha atual incorreta" }],
-				};
-				return res.status(400).json(errorResponse);
-			}
-
-			if (email === existingUser?.email && !newPassword) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Email já está em uso" }],
-				};
-				return res.status(400).json(errorResponse);
-			}
-
-			if (newPassword) {
-				const passwordMatch = await bcrypt.compare(
-					password,
-					existingUser!.password
-				);
-
-				if (!passwordMatch) {
-					const errorResponse: ErrorResponse = {
-						errors: [{ message: "Senha atual incorreta" }],
-					};
-					return res.status(400).json(errorResponse);
-				}
-
-				const newPasswordHash = await bcrypt.hash(newPassword, 10);
-				existingUser!.password = newPasswordHash;
-
-				const userUpdated = await prisma.user.update({
-					where: { id: Number(userId) },
-					data: {
-						name,
-						email,
-						password: newPasswordHash,
-						specialty,
-						companyId: req.companyId,
-					},
-				});
-
-				return res.send(userUpdated);
-			}
-
-			const passwordHash = await bcrypt.hash(password, 10);
-			const userUpdated = await prisma.user.update({
-				where: { id: Number(userId) },
-				data: {
-					name,
-					email,
-					password: passwordHash,
-					specialty,
-					companyId: req.companyId,
-				},
-			});
-
-			return res.send(userUpdated);
-		} catch (err) {
-			handleYupError(err, res);
-		}
-	}
-);
-
-app.delete("/users/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const userId = await prisma.user.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!userId) return res.status(400).send({ error: "User not found" });
-
-	const userDeleted = await prisma.user.delete({
-		where: { id: parseInt(id) },
-	});
-
-	res.send(userDeleted);
-});
 
 interface CompanyRequest extends Request {
 	body: CompanyData;

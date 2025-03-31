@@ -19,8 +19,9 @@ export function handleYupError(err: unknown, res: Response) {
 			})),
 		};
 		return res.status(400).json(errorResponse);
+	} else if (err instanceof Error) {
+		return res.status(400).json({ message: err.message });
 	} else {
-		console.error(err);
 		return res.status(500).json({ message: "Internal server error" });
 	}
 }

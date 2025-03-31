@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 
 async function main() {
-	await prisma.company.upsert({
+	const companyCreated = await prisma.company.upsert({
 		where: { slug: "adthasoftware" },
 		update: {},
 		create: {
@@ -17,7 +17,7 @@ async function main() {
 	});
 
 	await prisma.address.upsert({
-		where: { companyId: 1 },
+		where: { companyId: companyCreated.id },
 		update: {},
 		create: {
 			street: "57250 Stoney Laneaaaa",
@@ -41,7 +41,7 @@ async function main() {
 			email: "adoneslori@gmail.com",
 			password: passwordHash,
 			specialty: "Desenvolvedor",
-			companyId: 1,
+			companyId: companyCreated.id,
 		},
 	});
 

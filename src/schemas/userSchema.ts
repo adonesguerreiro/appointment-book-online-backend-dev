@@ -1,11 +1,11 @@
 import * as yup from "yup";
 
 export const userSchema = yup.object().shape({
-	name: yup.string().required("Name is required"),
-	email: yup.string().email().required("Email is required"),
+	name: yup.string().required("Nome é obrigatorio"),
+	email: yup.string().email().required("E-mail é obrigatorio"),
 	password: yup
 		.string()
-		.min(8, "Password must be at least 8 characters")
-		.required("Password is required"),
+		.min(8, "Senha deve ter no mínimo 8 caracteres")
+		.required("Senha é obrigatória"),
 	specialty: yup.string(),
 });
