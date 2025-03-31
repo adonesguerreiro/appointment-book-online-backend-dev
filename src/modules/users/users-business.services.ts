@@ -1,4 +1,7 @@
+import { authConfig } from "../../config/auth";
+import { SessionData } from "../../interfaces/SessionData";
 import { UserData } from "../../interfaces/UserData";
+import { sessionSchema } from "../../schemas/sessionSchema";
 import { userSchema } from "../../schemas/userSchema";
 import { ApiError } from "../../utils/apiError";
 import { hashPassword } from "../../utils/hashPassword";
