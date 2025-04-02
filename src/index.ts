@@ -3,16 +3,13 @@ import { DayWeek, PrismaClient } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
-import bcrypt from "bcrypt";
 import { ErrorResponse } from "./interfaces/ErrorResponse";
-import { userSchema } from "./schemas/userSchema";
 import { companySchema } from "./schemas/companySchema";
 import { addressSchema } from "./schemas/addressSchema";
 import { serviceSchema } from "./schemas/serviceSchema";
 import { customerSchema } from "./schemas/customerSchema";
 import { avaliableSchema } from "./schemas/avaliableSchema";
 import { unavaliableSchema } from "./schemas/unavaliableSchema";
-import { UserData } from "./interfaces/UserData";
 import { CompanyData } from "./interfaces/CompanyData";
 import { ServiceData } from "./interfaces/ServiceData";
 import { CustomerData } from "./interfaces/CustomerData";
@@ -31,6 +28,9 @@ import { sessions } from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
 import * as usersControllers from "./modules/users/users.controller";
+import * as uploadController from "./modules/upload/uploadAvatar.controller";
+import * as dashboardController from "./modules/dashboard/dashboard.controller";
+// import { upload } from "./middlewares/upload";
 
 dotenv.config();
 
@@ -151,78 +151,62 @@ app.post("/reset-password", resetPassword);
 // 	}
 // });
 
-interface UserRequest extends Request {
-	body: UserData;
-}
-
 app.use(auth);
 
-// Usuário
 app.get("/users", usersControllers.getAllUsers);
 app.get("/users/id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
 app.put("/users", usersControllers.updateUser);
 
-const upload = multer({ dest: "uploads/" });
-
-app.put(
-	"/upload",
-	upload.single("avatarUrl"),
-	async (req: Request, res: Response) => {
-		const file = req.file;
-
-		if (!file) {
-			return res.status(400).json({ error: "No file uploaded" });
-		}
-
-		const existingUserAvatar = await prisma.user.findUnique({
-			where: { id: Number(req.userId) },
-		});
-
-		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
-			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
-		}
-		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
-			folder: "profilePhotoUsers",
-			overwrite: true,
-			format: "webp",
-		});
-		fs.unlinkSync(file?.path!);
-
-		const userUpdated = await prisma.user.update({
-			where: { id: Number(req.userId) },
-			data: {
-				avatarUrl: cloudinaryResponse.secure_url,
-				avatarPublicId: cloudinaryResponse.public_id,
-			},
-		});
-
-		res.send(userUpdated);
-	}
-);
+// app.put(
+// 	"/upload",
+// 	upload.single("avatarUrl"),
+// 	uploadController.uploadProfilePhoto
+// );//*
 
 app.get(
 	"/dashboard/month/:month/year/:year",
-	async (req: Request, res: Response) => {
-		const { month, year } = req.params;
-
-		const scheduleByStatus = await prisma.schedule.groupBy({
-			by: ["status"],
-			where: {
-				companyId: req.companyId,
-				date: {
-					gte: new Date(`${year}-${month}-01`),
-					lte: new Date(`${year}-${month}-31`),
-				},
-			},
-			_count: {
-				status: true,
-			},
-		});
-
-		res.send({ scheduleByStatus });
-	}
+	dashboardController.dashboardPerMonthAndYear
 );
+
+// const upload = multer({ dest: "uploads/" });
+
+// app.put(
+// 	"/upload",
+// 	upload.single("avatarUrl"),
+// 	async (req: Request, res: Response) => {
+// 		const file = req.file;
+
+// 		if (!file) {
+// 			return res.status(400).json({ error: "No file uploaded" });
+// 		}
+
+// 		const existingUserAvatar = await prisma.user.findUnique({
+// 			where: { id: Number(req.userId) },
+// 		});
+
+// 		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
+// 			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
+// 		}
+
+// 		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
+// 			folder: "profilePhotoUsers",
+// 			overwrite: true,
+// 			format: "webp",
+// 		});
+// 		fs.unlinkSync(file?.path!);
+
+// 		const userUpdated = await prisma.user.update({
+// 			where: { id: Number(req.userId) },
+// 			data: {
+// 				avatarUrl: cloudinaryResponse.secure_url,
+// 				avatarPublicId: cloudinaryResponse.public_id,
+// 			},
+// 		});
+
+// 		res.send(userUpdated);
+// 	}
+// );
 
 interface CompanyRequest extends Request {
 	body: CompanyData;
