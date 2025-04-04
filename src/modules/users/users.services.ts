@@ -1,4 +1,3 @@
-import { hashPassword } from "./../../utils/hashPassword";
 import { prisma } from "../../config/prisma";
 import { UserData } from "../../interfaces/UserData";
 export const findAllUsers = async (skip: number, limit: number) => {
@@ -28,12 +27,6 @@ export const findUserByIdAndEmail = async (id: number, email: string) => {
 		},
 	});
 };
-
-// export const findByIdAndPassword = async (id: number, password: string) => {
-// 	await prisma.user.findUnique({
-// 		where: { id },
-// 	});
-// };
 
 export const createUser = async (data: UserData) => {
 	return await prisma.user.create({

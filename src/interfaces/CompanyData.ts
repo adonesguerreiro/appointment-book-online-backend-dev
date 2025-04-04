@@ -1,5 +1,3 @@
-import { AddressData } from "./AddressData";
-
 export interface CompanyData {
 	name: string;
 	mobile: string;

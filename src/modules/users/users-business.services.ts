@@ -62,7 +62,8 @@ export const updateUser = async (id: number, updateData: UserData) => {
 	try {
 		await userSchema.validate(updateData, { abortEarly: false });
 
-		const { newPassword, confirmPassword, ...data } = updateData;
+		const { newPassword, confirmPassword, avatarUrl, avatarPublicId, ...data } =
+			updateData;
 		await userSchema.validate(updateData, { abortEarly: false });
 
 		const existingUser = await userServices.findUserById(id);
@@ -100,8 +101,10 @@ export const updateUser = async (id: number, updateData: UserData) => {
 			return userUpdated;
 		}
 
-		const updatedHashPassword = await hashPassword(data.password);
-		data.password = updatedHashPassword;
+		if (data.password && data.password !== existingUser.password) {
+			const updatedHashPassword = await hashPassword(data.password);
+			data.password = updatedHashPassword;
+		}
 
 		const userUpdated = await userServices.updateUser(id, data);
 

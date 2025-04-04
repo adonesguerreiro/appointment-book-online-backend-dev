@@ -14,8 +14,8 @@ export const getAllUsers = async (req: Request, res: Response) => {
 		}
 
 		res.send(users);
-	} catch (error: any) {
-		res.status(500).json({ error: error.message });
+	} catch (err) {
+		res.status(500).json({ error: err });
 	}
 };
 
@@ -28,32 +28,43 @@ export const getUserById = async (req: Request, res: Response) => {
 		}
 
 		res.send(user);
-	} catch (error: any) {
-		res.status(500).json({ error: error.message });
+	} catch (err) {
+		res.status(500).json({ error: err });
 	}
 };
 
 export const createUser = async (req: Request, res: Response) => {
 	try {
-		const user = await usersBussinessServices.createUser(req.body);
+		const { name, email, password, specialty } = req.body;
+		const user = await usersBussinessServices.createUser({
+			name,
+			email,
+			password,
+			specialty,
+			companyId: Number(req.companyId),
+		});
 		res.status(200).send(user);
-	} catch (error: any) {
-		const yupHandled = handleYupError(error, res);
+	} catch (err) {
+		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: "Internal Server Error" });
+		res.status(500).json({ error: err });
 	}
 };
 
 export const updateUser = async (req: Request, res: Response) => {
 	try {
-		const user = await usersBussinessServices.updateUser(
-			Number(req.userId),
-			req.body
-		);
+		const { name, email, password, specialty } = req.body;
+		const user = await usersBussinessServices.updateUser(Number(req.userId), {
+			name,
+			email,
+			password,
+			specialty,
+			companyId: Number(req.companyId),
+		});
 		res.status(200).send(user);
-	} catch (error: any) {
-		const yupHandled = handleYupError(error, res);
+	} catch (err) {
+		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
 		res.status(500).json({ error: "Internal Server Error" });
