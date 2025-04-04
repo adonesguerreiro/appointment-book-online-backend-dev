@@ -62,8 +62,7 @@ export const updateUser = async (id: number, updateData: UserData) => {
 	try {
 		await userSchema.validate(updateData, { abortEarly: false });
 
-		const { newPassword, confirmPassword, avatarUrl, avatarPublicId, ...data } =
-			updateData;
+		const { newPassword, confirmPassword, ...data } = updateData;
 		await userSchema.validate(updateData, { abortEarly: false });
 
 		const existingUser = await userServices.findUserById(id);
