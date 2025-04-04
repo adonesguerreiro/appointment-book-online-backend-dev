@@ -3,35 +3,34 @@ import { DayWeek, PrismaClient } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
-import bcrypt from "bcrypt";
 import { ErrorResponse } from "./interfaces/ErrorResponse";
-import { userSchema } from "./schemas/userSchema";
-import { companySchema } from "./schemas/companySchema";
 import { addressSchema } from "./schemas/addressSchema";
 import { serviceSchema } from "./schemas/serviceSchema";
 import { customerSchema } from "./schemas/customerSchema";
 import { avaliableSchema } from "./schemas/avaliableSchema";
 import { unavaliableSchema } from "./schemas/unavaliableSchema";
-import { UserData } from "./interfaces/UserData";
-import { CompanyData } from "./interfaces/CompanyData";
 import { ServiceData } from "./interfaces/ServiceData";
 import { CustomerData } from "./interfaces/CustomerData";
 import { AvailableTimeData } from "./interfaces/AvailableTimeData";
 import { UnavaliableData } from "./interfaces/UnavaliableData";
-import jwt from "jsonwebtoken";
-import { authConfig } from "./config/auth";
 import auth from "./middlewares/auth";
-import { SessionData } from "./interfaces/SessionData";
-import { sessionSchema } from "./schemas/sessionSchema";
 import { scheduleSchema } from "./schemas/scheduleSchema";
 import { ScheduleData } from "./interfaces/ScheduleData";
 import { handleYupError } from "./utils/handleYupError";
 import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
-import cloudinary from "./config/cloudinary";
-import multer from "multer";
-import fs from "fs";
+// import cloudinary from "./config/cloudinary";
+// import multer from "multer";
+// import fs from "fs";
+import { sessions } from "./modules/auth/auth.controller";
+import { forgotPassword } from "./modules/auth/forgotPassword.controller";
+import { resetPassword } from "./modules/auth/resetPassword.controller";
+import * as usersControllers from "./modules/users/users.controller";
+// import * as uploadController from "./modules/upload/uploadAvatar.controller";
+import * as dashboardController from "./modules/dashboard/dashboard.controller";
+import * as companiesControllers from "./modules/companies/companies.controller";
+import * as addressesControllers from "./modules/address/address.controller";
+// import { upload } from "./middlewares/upload";
 
 dotenv.config();
 
@@ -49,551 +48,174 @@ app.get("/", (req: Request, res: Response) => {
 
 	res.send({ message });
 });
+// Autenticação - Login, Esqueci minha senha e Reset de senha
+app.post("/sessions", sessions);
+app.post("/forgot-password", forgotPassword);
+app.post("/reset-password", resetPassword);
 
-interface SessionRequest extends Request {
-	body: SessionData;
-}
+// 	try {
+// 		const { email } = req.body;
+// 		const user = await prisma.user.findUnique({
+// 			where: { email },
+// 		});
 
-app.post("/sessions", async (req: SessionRequest, res: Response) => {
-	const { email, password } = req.body;
+// 		if (user) {
+// 			const token = jwt.sign({ userId: user.id }, authConfig.secret, {
+// 				expiresIn: "5m",
+// 			});
 
-	try {
-		await sessionSchema.validate(req.body, { abortEarly: false });
+// 			const mailerSend = new MailerSend({
+// 				apiKey: process.env.API_EMAIL_KEY || "",
+// 			});
 
-		const existingUser = await prisma.user.findUnique({
-			where: { email },
-		});
+// 			const sentFrom = new Sender(
+// 				`${process.env.API_SMTP_KEY}`,
+// 				"AdthaSoftware"
+// 			);
 
-		if (!existingUser) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Usuário não encontrado." }],
-			};
-			return res.status(401).json(errorResponse);
-		}
+// 			const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
+// 			console.log(recipients[0].name);
 
-		if (existingUser.blocked === true) {
-			const errorResponse: ErrorResponse = {
-				errors: [
-					{
-						message: "Usuário está sem acesso, entre em contato com o suporte.",
-					},
-				],
-			};
+// 			const personalization = [
+// 				{
+// 					email: `${user.email}`,
+// 					data: {
+// 						user: {
+// 							name: `${recipients[0].name}`,
+// 							email: `${recipients[0].email}`,
+// 						},
+// 						action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
+// 						support_url: "https://wa.me/65996731038",
+// 						account_name: `${user.name}`,
+// 					},
+// 				},
+// 			];
 
-			return res.status(401).json(errorResponse);
-		}
+// 			const emailParams = new EmailParams()
+// 				.setFrom(sentFrom)
+// 				.setTo(recipients)
+// 				.setSubject("Subject")
+// 				.setTemplateId("zr6ke4n7e2mgon12")
+// 				.setPersonalization(personalization);
 
-		const isPasswordValid = await bcrypt.compare(
-			password,
-			existingUser.password
-		);
+// 			try {
+// 				await mailerSend.email.send(emailParams);
+// 				res.status(200).send({
+// 					message: "Email enviado com sucesso, verifique sua caixa de entrada.",
+// 				});
+// 			} catch (error) {
+// 				console.error("Error sending email:", error);
+// 				res
+// 					.status(500)
+// 					.send({ error: "Erro ao enviar o email, tente novamente." });
+// 			}
+// 		}
 
-		if (!isPasswordValid) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Senha inválida." }],
-			};
-			return res.status(401).json(errorResponse);
-		}
+// 		res.status(200).send({
+// 			message:
+// 				"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
+// 		});
+// 	} catch (err) {
+// 		handleYupError(err, res);
+// 	}
+// });
 
-		const { id, name } = existingUser;
+// app.post("/reset-password", async (req: Request, res: Response) => {
+// 	const { newPassword } = req.body;
+// 	const token = req.query.token as string;
+// 	try {
+// 		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
+// 		if (!payload) {
+// 			res.status(401).send({ error: "Token inválido ou expirado." });
+// 			return;
+// 		}
 
-		return res.json({
-			existingUser: id,
-			name,
-			email,
-			token: jwt.sign({ id }, authConfig.secret, {
-				expiresIn: authConfig.expiresIn,
-			}),
-		});
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
+// 		const user = await prisma.user.findUnique({
+// 			where: { id: payload.userId },
+// 		});
 
-app.post("/forgot-password", async (req: Request, res: Response) => {
-	const { email } = req.body;
-	const user = await prisma.user.findUnique({
-		where: { email },
-	});
+// 		if (!user) {
+// 			res.status(401).send({ error: "Token inválido ou expirado." });
+// 			return;
+// 		}
 
-	if (user) {
-		const token = jwt.sign({ userId: user.id }, authConfig.secret, {
-			expiresIn: "5m",
-		});
+// 		const passwordHash = await bcrypt.hash(newPassword, 10);
+// 		await prisma.user.update({
+// 			where: { id: payload.userId },
+// 			data: { password: passwordHash },
+// 		});
 
-		const mailerSend = new MailerSend({
-			apiKey: process.env.API_EMAIL_KEY || "",
-		});
-
-		const sentFrom = new Sender(`${process.env.API_SMTP_KEY}`, "AdthaSoftware");
-
-		const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
-		console.log(recipients[0].name);
-
-		const personalization = [
-			{
-				email: `${user.email}`,
-				data: {
-					user: {
-						name: `${recipients[0].name}`,
-						email: `${recipients[0].email}`,
-					},
-					action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
-					support_url: "https://wa.me/65996731038",
-					account_name: `${user.name}`,
-				},
-			},
-		];
-
-		const emailParams = new EmailParams()
-			.setFrom(sentFrom)
-			.setTo(recipients)
-			.setSubject("Subject")
-			.setTemplateId("zr6ke4n7e2mgon12")
-			.setPersonalization(personalization);
-
-		try {
-			await mailerSend.email.send(emailParams);
-			res.status(200).send({
-				message: "Email enviado com sucesso, verifique sua caixa de entrada.",
-			});
-		} catch (error) {
-			console.error("Error sending email:", error);
-			res
-				.status(500)
-				.send({ error: "Erro ao enviar o email, tente novamente." });
-		}
-	}
-
-	res.status(200).send({
-		message:
-			"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
-	});
-});
-
-app.post("/reset-password", async (req: Request, res: Response) => {
-	const { newPassword } = req.body;
-	const token = req.query.token as string;
-	try {
-		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
-		if (!payload) {
-			res.status(401).send({ error: "Token inválido ou expirado." });
-			return;
-		}
-
-		const user = await prisma.user.findUnique({
-			where: { id: payload.userId },
-		});
-
-		if (!user) {
-			res.status(401).send({ error: "Token inválido ou expirado." });
-			return;
-		}
-
-		const passwordHash = await bcrypt.hash(newPassword, 10);
-		await prisma.user.update({
-			where: { id: payload.userId },
-			data: { password: passwordHash },
-		});
-
-		res.status(200).send({ message: "Senha resetada com sucesso." });
-	} catch (error) {
-		console.error("Error reset password:", error);
-		res.status(500).send({ error: "Erro ao resetar a senha." });
-	}
-});
-
-interface UserRequest extends Request {
-	body: UserData;
-}
-
-app.post("/users", async (req: UserRequest, res: Response) => {
-	const { name, email, password, specialty } = req.body;
-	const passwordHash = await bcrypt.hash(password, 10);
-
-	try {
-		await userSchema.validate(req.body, { abortEarly: false });
-
-		const existingUser = await prisma.user.findUnique({
-			where: { email },
-		});
-
-		if (existingUser) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email already in use" }],
-			};
-			return res.status(400).json(errorResponse);
-		}
-
-		const userCreated = await prisma.user.create({
-			data: {
-				name,
-				email,
-				password: passwordHash,
-				specialty,
-				companyId: req.companyId,
-			},
-		});
-
-		res.send(userCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.post("/companies", async (req: CompanyRequest, res: Response) => {
-	const { name, mobile, email, cnpj } = req.body;
-
-	try {
-		await companySchema.validate(req.body, { abortEarly: false });
-
-		const existingCompany = await prisma.company.findFirst({
-			where: { OR: [{ mobile }, { email }, { cnpj }] },
-		});
-
-		if (existingCompany?.mobile) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.email) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.cnpj) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-		const companyCreated = await prisma.company.create({
-			data: { name, mobile, email, cnpj },
-		});
-
-		res.send(companyCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
+// 		res.status(200).send({ message: "Senha resetada com sucesso." });
+// 	} catch (err) {
+// 		handleYupError(err, res);
+// 	}
+// });
 
 app.use(auth);
+// Usuário
+app.get("/users", usersControllers.getAllUsers);
+app.get("/users/id", usersControllers.getUserById);
+app.post("/users", usersControllers.createUser);
+app.put("/users", usersControllers.updateUser);
 
-const upload = multer({ dest: "uploads/" });
-
-app.put(
-	"/upload",
-	upload.single("avatarUrl"),
-	async (req: Request, res: Response) => {
-		const file = req.file;
-
-		if (!file) {
-			return res.status(400).json({ error: "No file uploaded" });
-		}
-
-		const existingUserAvatar = await prisma.user.findUnique({
-			where: { id: Number(req.userId) },
-		});
-
-		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
-			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
-		}
-		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
-			folder: "profilePhotoUsers",
-			overwrite: true,
-			format: "webp",
-		});
-		fs.unlinkSync(file?.path!);
-
-		const userUpdated = await prisma.user.update({
-			where: { id: Number(req.userId) },
-			data: {
-				avatarUrl: cloudinaryResponse.secure_url,
-				avatarPublicId: cloudinaryResponse.public_id,
-			},
-		});
-
-		res.send(userUpdated);
-	}
-);
-
+// app.put(
+// 	"/upload",
+// 	upload.single("avatarUrl"),
+// 	uploadController.uploadProfilePhoto
+// );//*
+// Dashboard por mês e ano
 app.get(
 	"/dashboard/month/:month/year/:year",
-	async (req: Request, res: Response) => {
-		const { month, year } = req.params;
-
-		const scheduleByStatus = await prisma.schedule.groupBy({
-			by: ["status"],
-			where: {
-				companyId: req.companyId,
-				date: {
-					gte: new Date(`${year}-${month}-01`),
-					lte: new Date(`${year}-${month}-31`),
-				},
-			},
-			_count: {
-				status: true,
-			},
-		});
-
-		res.send({ scheduleByStatus });
-	}
+	dashboardController.dashboardPerMonthAndYear
 );
 
-app.get("/users", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
+// Empresa
+app.get("/companies", companiesControllers.getAllCompanies);
+app.get("/companies/id", companiesControllers.getCompaniesById);
+app.post("/companies", companiesControllers.createCompany);
+app.put("/companies", companiesControllers.updateCompany);
 
-	const users = await prisma.user.findMany({
-		skip: skip,
-		take: limit,
-	});
+//Endereço
+app.get("/addresses", addressesControllers.getAllAddresses);
 
-	res.send(users);
-});
+// const upload = multer({ dest: "uploads/" });
 
-app.get("/users/id", async (req: Request, res: Response) => {
-	const userId = await prisma.user.findUnique({
-		where: { id: Number(req.userId) },
-	});
+// app.put(
+// 	"/upload",
+// 	upload.single("avatarUrl"),
+// 	async (req: Request, res: Response) => {
+// 		const file = req.file;
 
-	if (!userId) return res.status(400).send({ error: "User not found" });
+// 		if (!file) {
+// 			return res.status(400).json({ error: "No file uploaded" });
+// 		}
 
-	res.send(userId);
-});
+// 		const existingUserAvatar = await prisma.user.findUnique({
+// 			where: { id: Number(req.userId) },
+// 		});
 
-app.put(
-	"/users",
+// 		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
+// 			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
+// 		}
 
-	async (req: UserRequest, res: Response) => {
-		const userId = req.userId;
-		const { name, email, password, newPassword, specialty } = req.body;
-		try {
-			await userSchema.validate(req.body, { abortEarly: false });
+// 		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
+// 			folder: "profilePhotoUsers",
+// 			overwrite: true,
+// 			format: "webp",
+// 		});
+// 		fs.unlinkSync(file?.path!);
 
-			const existingUser = await prisma.user.findUnique({
-				where: {
-					email,
-					NOT: { id: Number(userId) },
-				},
-			});
+// 		const userUpdated = await prisma.user.update({
+// 			where: { id: Number(req.userId) },
+// 			data: {
+// 				avatarUrl: cloudinaryResponse.secure_url,
+// 				avatarPublicId: cloudinaryResponse.public_id,
+// 			},
+// 		});
 
-			const existingUserPassword = await prisma.user.findUnique({
-				where: { id: Number(userId) },
-			});
-
-			const isPasswordValid = await bcrypt.compare(
-				password,
-				existingUserPassword!.password
-			);
-
-			if (!isPasswordValid) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Senha atual incorreta" }],
-				};
-				return res.status(400).json(errorResponse);
-			}
-
-			if (email === existingUser?.email && !newPassword) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Email já está em uso" }],
-				};
-				return res.status(400).json(errorResponse);
-			}
-
-			if (newPassword) {
-				const passwordMatch = await bcrypt.compare(
-					password,
-					existingUser!.password
-				);
-
-				if (!passwordMatch) {
-					const errorResponse: ErrorResponse = {
-						errors: [{ message: "Senha atual incorreta" }],
-					};
-					return res.status(400).json(errorResponse);
-				}
-
-				const newPasswordHash = await bcrypt.hash(newPassword, 10);
-				existingUser!.password = newPasswordHash;
-
-				const userUpdated = await prisma.user.update({
-					where: { id: Number(userId) },
-					data: {
-						name,
-						email,
-						password: newPasswordHash,
-						specialty,
-						companyId: req.companyId,
-					},
-				});
-
-				return res.send(userUpdated);
-			}
-
-			const passwordHash = await bcrypt.hash(password, 10);
-			const userUpdated = await prisma.user.update({
-				where: { id: Number(userId) },
-				data: {
-					name,
-					email,
-					password: passwordHash,
-					specialty,
-					companyId: req.companyId,
-				},
-			});
-
-			return res.send(userUpdated);
-		} catch (err) {
-			handleYupError(err, res);
-		}
-	}
-);
-
-app.delete("/users/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const userId = await prisma.user.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!userId) return res.status(400).send({ error: "User not found" });
-
-	const userDeleted = await prisma.user.delete({
-		where: { id: parseInt(id) },
-	});
-
-	res.send(userDeleted);
-});
-
-interface CompanyRequest extends Request {
-	body: CompanyData;
-}
-
-app.get("/companies", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
-
-	const companies = await prisma.company.findMany({
-		skip: skip,
-		take: limit,
-	});
-
-	res.send(companies);
-});
-
-app.get("/companies/id", async (req: Request, res: Response) => {
-	const companyId = await prisma.company.findUnique({
-		where: { id: req.companyId },
-		include: {
-			addresses: true,
-		},
-	});
-
-	if (!companyId) return res.status(400).send({ error: "Company not found" });
-
-	res.send(companyId);
-});
-
-app.put("/companies", async (req: CompanyRequest, res: Response) => {
-	const userId = req.userId;
-	const { name, mobile, email, cnpj } = req.body;
-
-	try {
-		await companySchema.validate(req.body, { abortEarly: false });
-
-		const companyId = await prisma.company.findUnique({
-			where: { id: Number(userId) },
-		});
-
-		if (!companyId) return res.status(400).send({ error: "Company not found" });
-
-		const existingCompany = await prisma.company.findFirst({
-			where: {
-				OR: [{ mobile }, { email }, { cnpj }],
-				NOT: { id: Number(userId) },
-			},
-			include: { addresses: true },
-		});
-
-		if (existingCompany?.mobile === mobile) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Número de celular já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.email === email) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.cnpj === cnpj) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "CNPJ já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const companyUpdated = await prisma.company.update({
-			where: { id: Number(userId) },
-			data: {
-				name,
-				mobile,
-				email,
-				cnpj,
-			},
-			include: { addresses: true },
-		});
-
-		res.send({ companyUpdated });
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.delete("/companies/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const companyId = await prisma.company.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!companyId) return res.status(400).send({ error: "Company not found" });
-
-	const companyDeleted = await prisma.company.delete({
-		where: { id: parseInt(id) },
-	});
-
-	res.send(companyDeleted);
-});
-
-app.get("/addresses", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
-
-	const addresses = await prisma.address.findMany({
-		skip: skip,
-		take: limit,
-	});
-
-	res.send(addresses);
-});
+// 		res.send(userUpdated);
+// 	}
+// );
 
 app.get("/addresses/:id", async (req: Request, res: Response) => {
 	const { id } = req.params;
