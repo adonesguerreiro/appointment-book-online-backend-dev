@@ -48,7 +48,7 @@ export const createUser = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ error: "Internal Server Error" });
 	}
 };
 

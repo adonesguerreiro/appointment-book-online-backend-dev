@@ -1,6 +1,4 @@
-import { CompanyData } from "./CompanyData";
-
-export interface AddressData extends CompanyData {
+export interface AddressData {
 	id: number;
 	street: string;
 	number: string;

@@ -4,13 +4,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import { ErrorResponse } from "./interfaces/ErrorResponse";
-import { companySchema } from "./schemas/companySchema";
 import { addressSchema } from "./schemas/addressSchema";
 import { serviceSchema } from "./schemas/serviceSchema";
 import { customerSchema } from "./schemas/customerSchema";
 import { avaliableSchema } from "./schemas/avaliableSchema";
 import { unavaliableSchema } from "./schemas/unavaliableSchema";
-import { CompanyData } from "./interfaces/CompanyData";
 import { ServiceData } from "./interfaces/ServiceData";
 import { CustomerData } from "./interfaces/CustomerData";
 import { AvailableTimeData } from "./interfaces/AvailableTimeData";
@@ -51,6 +49,7 @@ app.get("/", (req: Request, res: Response) => {
 	res.send({ message });
 });
 
+// Autenticação - Login, Esqueci minha senha e Reset de senha
 app.post("/sessions", sessions);
 app.post("/forgot-password", forgotPassword);
 app.post("/reset-password", resetPassword);
@@ -60,10 +59,6 @@ app.post("/reset-password", resetPassword);
 // 		const user = await prisma.user.findUnique({
 // 			where: { email },
 // 		});
-// Autenticação - Login, Esqueci minha senha e Reset de senha
-app.post("/sessions", sessions);
-app.post("/forgot-password", forgotPassword);
-app.post("/reset-password", resetPassword);
 
 // 	try {
 // 		const { email } = req.body;
@@ -294,23 +289,6 @@ app.get(
 // 		res.send(userUpdated);
 // 	}
 // );
-
-interface CompanyRequest extends Request {
-	body: CompanyData;
-}
-
-app.get("/companies", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
-
-	const companies = await prisma.company.findMany({
-		skip: skip,
-		take: limit,
-	});
-
-	res.send(companies);
-});
 
 app.get("/companies/id", async (req: Request, res: Response) => {
 	const companyId = await prisma.company.findUnique({
@@ -325,127 +303,6 @@ app.get("/companies/id", async (req: Request, res: Response) => {
 	res.send(companyId);
 });
 
-app.post("/companies", async (req: CompanyRequest, res: Response) => {
-	const { name, mobile, email, cnpj, slug } = req.body;
-
-	try {
-		await companySchema.validate(req.body, { abortEarly: false });
-
-		const existingCompany = await prisma.company.findFirst({
-			where: { OR: [{ mobile }, { email }, { cnpj }] },
-		});
-
-		if (existingCompany?.mobile) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.email) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.cnpj) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Mobile number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-		const companyCreated = await prisma.company.create({
-			data: { name, mobile, email, cnpj, slug },
-		});
-
-		res.send(companyCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.put("/companies", async (req: CompanyRequest, res: Response) => {
-	const userId = req.userId;
-	const { name, mobile, email, cnpj } = req.body;
-
-	try {
-		await companySchema.validate(req.body, { abortEarly: false });
-
-		const companyId = await prisma.company.findUnique({
-			where: { id: Number(userId) },
-		});
-
-		if (!companyId) return res.status(400).send({ error: "Company not found" });
-
-		const existingCompany = await prisma.company.findFirst({
-			where: {
-				OR: [{ mobile }, { email }, { cnpj }],
-				NOT: { id: Number(userId) },
-			},
-			include: { addresses: true },
-		});
-
-		if (existingCompany?.mobile === mobile) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Número de celular já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.email === email) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Email já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingCompany?.cnpj === cnpj) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "CNPJ já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const companyUpdated = await prisma.company.update({
-			where: { id: Number(userId) },
-			data: {
-				name,
-				mobile,
-				email,
-				cnpj,
-			},
-			include: { addresses: true },
-		});
-
-		res.send({ companyUpdated });
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.delete("/companies/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const companyId = await prisma.company.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!companyId) return res.status(400).send({ error: "Company not found" });
-
-	const companyDeleted = await prisma.company.delete({
-		where: { id: parseInt(id) },
-	});
-
-	res.send(companyDeleted);
-});
-
 app.get("/addresses", async (req: Request, res: Response) => {
 	const page = parseInt(req.query.page as string) || 1;
 	const limit = parseInt(req.query.limit as string) || 10;
@@ -458,11 +315,6 @@ app.get("/addresses", async (req: Request, res: Response) => {
 
 	res.send(addresses);
 });
-// 		res.status(200).send({ message: "Senha resetada com sucesso." });
-// 	} catch (err) {
-// 		handleYupError(err, res);
-// 	}
-// });
 
 app.use(auth);
 // Usuário
@@ -471,11 +323,6 @@ app.get("/users/id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
 app.put("/users", usersControllers.updateUser);
 
-// app.put(
-// 	"/upload",
-// 	upload.single("avatarUrl"),
-// 	uploadController.uploadProfilePhoto
-// );//*
 // Dashboard por mês e ano
 app.get(
 	"/dashboard/month/:month/year/:year",
@@ -490,6 +337,9 @@ app.put("/companies", companiesControllers.updateCompany);
 
 //Endereço
 app.get("/addresses", addressesControllers.getAllAddresses);
+app.get("/addresses/id", addressesControllers.getAddressById);
+app.post("/addresses", addressesControllers.createAddress);
+app.put("/addresses/:id", addressesControllers.updateAddress);
 
 // const upload = multer({ dest: "uploads/" });
 
@@ -529,159 +379,6 @@ app.get("/addresses", addressesControllers.getAllAddresses);
 // 		res.send(userUpdated);
 // 	}
 // );
-
-app.get("/addresses/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const addressId = await prisma.address.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!addressId) return res.status(400).send({ error: "Address not found" });
-
-	res.send(addressId);
-});
-
-interface AddressRequest extends Request {
-	body: AddressData;
-}
-
-app.post("/addresses", async (req: AddressRequest, res: Response) => {
-	const { street, number, complement, neighborhood, city, state, postalCode } =
-		req.body;
-
-	try {
-		await addressSchema.validate(req.body, { abortEarly: false });
-
-		const existingAddress = await prisma.address.findFirst({
-			where: {
-				street,
-				number,
-				neighborhood,
-				city,
-				state,
-				postalCode,
-				companyId: req.companyId,
-			},
-		});
-
-		if (existingAddress?.street && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Street address already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.number && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Number already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.neighborhood && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Neighborhood already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.city && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "City already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.state && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "State already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		if (existingAddress?.postalCode && existingAddress.companyId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Postal code already in use" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const addressCreated = await prisma.address.create({
-			data: {
-				street,
-				number,
-				complement,
-				neighborhood,
-				city,
-				state,
-				postalCode,
-				companyId: Number(req.companyId),
-			},
-		});
-
-		res.send(addressCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.put("/addresses/:id", async (req: AddressRequest, res: Response) => {
-	const { id } = req.params;
-
-	const { street, number, complement, neighborhood, city, state, postalCode } =
-		req.body;
-
-	try {
-		await addressSchema.validate(req.body, { abortEarly: false });
-
-		const addressId = await prisma.address.findUnique({
-			where: { id: parseInt(id) },
-		});
-
-		if (!addressId) return res.status(400).send({ error: "Address not found" });
-
-		const addressUpdated = await prisma.address.update({
-			where: { id: parseInt(id) },
-			data: {
-				street,
-				number,
-				complement,
-				neighborhood,
-				city,
-				state,
-				postalCode,
-				companyId: Number(req.companyId),
-			},
-		});
-
-		res.send(addressUpdated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.delete("/addresses/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const addressId = await prisma.address.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!addressId) return res.status(400).send({ error: "Address not found" });
-
-	const addressDeleted = await prisma.company.delete({
-		where: { id: parseInt(id) },
-	});
-
-	res.send(addressDeleted);
-});
 
 app.get("/services", async (req: Request, res: Response) => {
 	const page = Math.max(1, parseInt(req.query.page as string) || 1);
