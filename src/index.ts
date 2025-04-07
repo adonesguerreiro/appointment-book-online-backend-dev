@@ -30,6 +30,7 @@ import * as usersControllers from "./modules/users/users.controller";
 import * as dashboardController from "./modules/dashboard/dashboard.controller";
 import * as companiesControllers from "./modules/companies/companies.controller";
 import * as addressesControllers from "./modules/address/address.controller";
+import * as servicesControllers from "./modules/services/services.controller";
 // import { upload } from "./middlewares/upload";
 
 dotenv.config();
@@ -290,32 +291,6 @@ app.get(
 // 	}
 // );
 
-app.get("/companies/id", async (req: Request, res: Response) => {
-	const companyId = await prisma.company.findUnique({
-		where: { id: req.companyId },
-		include: {
-			addresses: true,
-		},
-	});
-
-	if (!companyId) return res.status(400).send({ error: "Company not found" });
-
-	res.send(companyId);
-});
-
-app.get("/addresses", async (req: Request, res: Response) => {
-	const page = parseInt(req.query.page as string) || 1;
-	const limit = parseInt(req.query.limit as string) || 10;
-	const skip = (page - 1) * limit;
-
-	const addresses = await prisma.address.findMany({
-		skip: skip,
-		take: limit,
-	});
-
-	res.send(addresses);
-});
-
 app.use(auth);
 // Usuário
 app.get("/users", usersControllers.getAllUsers);
@@ -340,6 +315,14 @@ app.get("/addresses", addressesControllers.getAllAddresses);
 app.get("/addresses/id", addressesControllers.getAddressById);
 app.post("/addresses", addressesControllers.createAddress);
 app.put("/addresses/:id", addressesControllers.updateAddress);
+
+// Serviços
+
+app.get("/services", servicesControllers.getAllServicesByCompanyId);
+app.get("/services/:id", servicesControllers.getServiceById);
+app.post("/services", servicesControllers.createService);
+app.put("/services/:id", servicesControllers.updateService);
+app.delete("/services/:id", servicesControllers.deleteService);
 
 // const upload = multer({ dest: "uploads/" });
 
@@ -379,182 +362,6 @@ app.put("/addresses/:id", addressesControllers.updateAddress);
 // 		res.send(userUpdated);
 // 	}
 // );
-
-app.get("/services", async (req: Request, res: Response) => {
-	const page = Math.max(1, parseInt(req.query.page as string) || 1);
-	const limit = Math.min(
-		100,
-		Math.max(1, parseInt(req.query.limit as string) || 10)
-	);
-	const skip = (page - 1) * limit;
-
-	const totalItems = await prisma.service.count({
-		where: { companyId: req.companyId },
-	});
-
-	const totalPages = Math.ceil(totalItems / limit);
-
-	if (page > totalPages) {
-		return res.status(404).send({ error: "Página não encontrada" });
-	}
-
-	const services = await prisma.service.findMany({
-		where: { companyId: req.companyId, deletedAt: null },
-		skip: skip,
-		take: limit,
-		orderBy: { serviceName: "asc" },
-	});
-
-	res.send({ services, totalPages, currentPage: page });
-});
-
-app.get("/services/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const serviceId = await prisma.service.findUnique({
-		where: { id: parseInt(id), companyId: req.companyId },
-	});
-
-	if (!serviceId) return res.status(400).send({ error: "Service not found" });
-
-	res.send(serviceId);
-});
-
-interface ServiceRequest extends Request {
-	body: ServiceData;
-}
-
-app.post("/services", async (req: ServiceRequest, res: Response) => {
-	const { serviceName, duration, price } = req.body;
-
-	try {
-		await serviceSchema.validate(req.body, { abortEarly: false });
-
-		const existingService = await prisma.service.findFirst({
-			where: {
-				serviceName,
-				companyId: req.companyId,
-				deletedAt: null,
-			},
-		});
-
-		if (existingService) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Nome do serviço já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const existingServiceDeleted = await prisma.service.findFirst({
-			where: {
-				serviceName,
-				companyId: req.companyId,
-				NOT: {
-					deletedAt: null,
-				},
-			},
-		});
-
-		let serviceCreated;
-
-		if (existingServiceDeleted) {
-			serviceCreated = await prisma.service.update({
-				where: { id: existingServiceDeleted.id },
-				data: {
-					serviceName,
-					duration,
-					price,
-					companyId: req.companyId,
-					deletedAt: null,
-				},
-			});
-		} else {
-			serviceCreated = await prisma.service.create({
-				data: {
-					serviceName,
-					duration,
-					price,
-					companyId: Number(req.companyId),
-				},
-			});
-		}
-
-		res.send(serviceCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.put("/services/:id", async (req: ServiceRequest, res: Response) => {
-	const { id } = req.params;
-	const { serviceName, duration, price } = req.body;
-
-	try {
-		await serviceSchema.validate(req.body, { abortEarly: false });
-
-		const serviceId = await prisma.service.findUnique({
-			where: { id: parseInt(id) },
-		});
-
-		if (!serviceId) return res.status(400).send({ error: "Service not found" });
-
-		const existingService = await prisma.service.findFirst({
-			where: {
-				NOT: { id: parseInt(id) },
-				companyId: req.companyId,
-				serviceName,
-			},
-		});
-
-		if (existingService) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Nome do serviço já está em uso" }],
-			};
-			return res.status(400).json(errorResponse);
-		}
-
-		const serviceUpdated = await prisma.service.update({
-			where: { id: parseInt(id) },
-			data: { serviceName, duration, price, companyId: req.companyId },
-		});
-
-		res.send(serviceUpdated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.delete("/services/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const serviceId = await prisma.service.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	const serviceScheduleExists = await prisma.schedule.findFirst({
-		where: { serviceId: parseInt(id) },
-	});
-
-	if (serviceScheduleExists) {
-		const errorResponse: ErrorResponse = {
-			errors: [
-				{ message: "Serviço possui agendamentos, não é possível deletar" },
-			],
-		};
-
-		return res.status(400).json(errorResponse);
-	}
-
-	if (!serviceId) return res.status(400).send({ error: "Service not found" });
-
-	const serviceDeleted = await prisma.service.update({
-		where: { id: parseInt(id) },
-		data: { deletedAt: new Date() },
-	});
-
-	res.send(serviceDeleted);
-});
 
 app.get("/schedules", async (req: Request, res: Response) => {
 	try {
