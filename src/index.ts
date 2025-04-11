@@ -31,6 +31,7 @@ import * as dashboardController from "./modules/dashboard/dashboard.controller";
 import * as companiesControllers from "./modules/companies/companies.controller";
 import * as addressesControllers from "./modules/address/address.controller";
 import * as servicesControllers from "./modules/services/services.controller";
+import * as schedulesControllers from "./modules/schedule/schedule.controller";
 // import { upload } from "./middlewares/upload";
 
 dotenv.config();
@@ -324,6 +325,12 @@ app.post("/services", servicesControllers.createService);
 app.put("/services/:id", servicesControllers.updateService);
 app.delete("/services/:id", servicesControllers.deleteService);
 
+//Agenda
+app.get("/schedules", schedulesControllers.getAllSchedulesByCompanyId);
+app.get("/schedules/:id", schedulesControllers.getScheduleById);
+app.post("/schedules", schedulesControllers.createSchedule);
+app.put("/schedules/:id", schedulesControllers.updateSchedule);
+
 // const upload = multer({ dest: "uploads/" });
 
 // app.put(
@@ -362,246 +369,6 @@ app.delete("/services/:id", servicesControllers.deleteService);
 // 		res.send(userUpdated);
 // 	}
 // );
-
-app.get("/schedules", async (req: Request, res: Response) => {
-	try {
-		const page = Math.max(1, parseInt(req.query.page as string) || 1);
-		const limit = Math.min(
-			100,
-			Math.max(1, parseInt(req.query.limit as string) || 10)
-		);
-		const skip = (page - 1) * limit;
-
-		const totalItems = await prisma.schedule.count({
-			where: { companyId: req.companyId },
-		});
-
-		const totalPages = Math.ceil(totalItems / limit);
-
-		if (page > totalPages) {
-			return res.status(404).send({ error: "Página não encontrada" });
-		}
-
-		const schedules = await prisma.schedule.findMany({
-			where: { companyId: req.companyId },
-			skip,
-			take: limit,
-			orderBy: { date: "asc" },
-		});
-
-		res.send({ schedules, totalPages, currentPage: page });
-	} catch (error) {
-		console.error("Erro no backend:", error);
-		res.status(500).send({ error: "Erro no servidor" });
-	}
-});
-
-app.get("/schedules/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const scheduleId = await prisma.schedule.findUnique({
-		where: { id: parseInt(id), companyId: req.companyId },
-	});
-
-	if (!scheduleId) return res.status(400).send({ error: "Schedule not found" });
-
-	res.send(scheduleId);
-});
-
-interface ScheduleRequest extends Request {
-	body: ScheduleData;
-}
-app.post("/schedules", async (req: ScheduleRequest, res: Response) => {
-	const { date, timeSlotAvaliable, status, customerId, serviceId } = req.body;
-
-	const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
-
-	try {
-		await scheduleSchema.validate(req.body, { abortEarly: false });
-
-		const existingCustomerId = await prisma.customer.findFirst({
-			where: { id: Number(customerId), companyId: req.companyId },
-		});
-
-		if (!existingCustomerId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Cliente não encontrado" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const existingServiceId = await prisma.service.findFirst({
-			where: { id: Number(serviceId), companyId: req.companyId },
-		});
-
-		if (!existingServiceId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Serviço não encontrado" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const existingSchedule = await prisma.schedule.findFirst({
-			where: {
-				date: formattedDate,
-				status,
-				companyId: req.companyId,
-			},
-		});
-
-		if (existingSchedule) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Agendamento já existe!" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const startOfDayDate = date.split("T")[0] + `T00:00:00.000Z`;
-		const endOfDayDate = date.split("T")[0] + `T23:59:59.000Z`;
-
-		const existingScheduleTime = await prisma.unavaliableTime.findFirst({
-			where: {
-				date: {
-					gte: startOfDayDate,
-					lte: endOfDayDate,
-				},
-				companyId: req.companyId,
-			},
-		});
-
-		if (existingScheduleTime) {
-			const errorResponse: ErrorResponse = {
-				errors: [
-					{
-						message:
-							"Já existe horário indisponível para este período, não será possível agendar.",
-					},
-				],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const scheduleCreated = await prisma.schedule.create({
-			data: {
-				date: formattedDate,
-				status,
-				customerId: existingCustomerId.id,
-				customerName: existingCustomerId.customerName,
-				customerPhone: existingCustomerId.mobile,
-				serviceId: existingServiceId.id,
-				serviceName: existingServiceId.serviceName,
-				duration: existingServiceId.duration,
-				price: existingServiceId.price,
-				companyId: Number(req.companyId),
-			},
-		});
-
-		res.send(scheduleCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.put("/schedules/:id", async (req: ScheduleRequest, res: Response) => {
-	const { id } = req.params;
-	const { date, timeSlotAvaliable, status, customerId, serviceId } = req.body;
-
-	const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
-
-	try {
-		await scheduleSchema.validate(req.body, { abortEarly: false });
-
-		const existingCustomerId = await prisma.customer.findFirst({
-			where: { id: Number(customerId), companyId: req.companyId },
-		});
-
-		if (!existingCustomerId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Cliente não encontrado" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const existingServiceId = await prisma.service.findFirst({
-			where: { id: Number(serviceId), companyId: req.companyId },
-		});
-
-		if (!existingServiceId) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Serviço não encontrado" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const existingSchedule = await prisma.schedule.findFirst({
-			where: {
-				date: formattedDate,
-				status,
-				companyId: req.companyId,
-			},
-		});
-
-		if (existingSchedule) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Agendamento já existe!" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const startOfDayDate = date.split("T")[0] + `T00:00:00.000Z`;
-		const endOfDayDate = date.split("T")[0] + `T23:59:59.000Z`;
-
-		const existingScheduleTime = await prisma.unavaliableTime.findFirst({
-			where: {
-				date: {
-					gte: startOfDayDate,
-					lte: endOfDayDate,
-				},
-				companyId: req.companyId,
-			},
-		});
-
-		if (existingScheduleTime) {
-			const errorResponse: ErrorResponse = {
-				errors: [
-					{
-						message:
-							"Existe horário indisponível para este período, não será possível agendar.",
-					},
-				],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const scheduleUpdated = await prisma.schedule.update({
-			where: { id: parseInt(id) },
-			data: {
-				date: formattedDate,
-				status,
-				customerId: existingCustomerId.id,
-				customerName: existingCustomerId.customerName,
-				customerPhone: existingCustomerId.mobile,
-				serviceId: existingServiceId.id,
-				serviceName: existingServiceId.serviceName,
-				duration: existingServiceId.duration,
-				price: existingServiceId.price,
-				companyId: req.companyId,
-			},
-		});
-
-		res.send(scheduleUpdated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
 
 app.get("/customers", async (req: Request, res: Response) => {
 	const page = Math.max(1, parseInt(req.query.page as string) || 1);

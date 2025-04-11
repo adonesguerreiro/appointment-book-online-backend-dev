@@ -10,6 +10,6 @@ export interface ScheduleData {
 	price: number;
 	date: string;
 	status: ScheduleStatus;
-	timeSlotAvaliable: string;
+	timeSlotAvaliable?: string;
 	companyId: number;
 }
