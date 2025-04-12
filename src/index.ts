@@ -32,6 +32,7 @@ import * as companiesControllers from "./modules/companies/companies.controller"
 import * as addressesControllers from "./modules/address/address.controller";
 import * as servicesControllers from "./modules/services/services.controller";
 import * as schedulesControllers from "./modules/schedule/schedule.controller";
+import * as customersControllers from "./modules/customer/customer.controller";
 // import { upload } from "./middlewares/upload";
 
 dotenv.config();
@@ -331,6 +332,13 @@ app.get("/schedules/:id", schedulesControllers.getScheduleById);
 app.post("/schedules", schedulesControllers.createSchedule);
 app.put("/schedules/:id", schedulesControllers.updateSchedule);
 
+// Cliente
+app.get("/customers", customersControllers.getAllSchedulesByCompanyId);
+app.get("/customers/:id", customersControllers.getCustomerById);
+app.post("/customers", customersControllers.createCustomer);
+app.put("/customers/:id", customersControllers.updateCustomer);
+app.delete("/customers/:id", customersControllers.deleteCustomer);
+
 // const upload = multer({ dest: "uploads/" });
 
 // app.put(
@@ -369,173 +377,6 @@ app.put("/schedules/:id", schedulesControllers.updateSchedule);
 // 		res.send(userUpdated);
 // 	}
 // );
-
-app.get("/customers", async (req: Request, res: Response) => {
-	const page = Math.max(1, parseInt(req.query.page as string) || 1);
-	const limit = Math.min(
-		100,
-		Math.max(1, parseInt(req.query.limit as string) || 10)
-	);
-	const skip = (page - 1) * limit;
-
-	const totalItems = await prisma.customer.count({
-		where: { companyId: req.companyId },
-	});
-
-	const totalPages = Math.ceil(totalItems / limit);
-
-	if (page > totalPages) {
-		return res.status(404).send({ error: "Página não encontrada" });
-	}
-
-	const customers = await prisma.customer.findMany({
-		where: { companyId: req.companyId, deletedAt: null },
-		skip: skip,
-		take: limit,
-		orderBy: { customerName: "asc" },
-	});
-
-	res.send({ customers, totalPages, currentPage: page });
-});
-
-app.get("/customers/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const customerId = await prisma.customer.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!customerId) return res.status(400).send({ error: "Customer not found" });
-
-	res.send(customerId);
-});
-
-interface CustomerRequest extends Request {
-	body: CustomerData;
-}
-
-app.post("/customers", async (req: CustomerRequest, res: Response) => {
-	const { customerName, mobile } = req.body;
-
-	try {
-		await customerSchema.validate(req.body, { abortEarly: false });
-
-		const existingCustomer = await prisma.customer.findFirst({
-			where: { mobile, companyId: req.companyId, deletedAt: null },
-		});
-
-		if (existingCustomer) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Número de celular já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const existingCustomerDeleted = await prisma.customer.findFirst({
-			where: {
-				customerName,
-				mobile,
-				companyId: req.companyId,
-				NOT: { deletedAt: null },
-			},
-		});
-
-		let customerCreated;
-
-		if (existingCustomerDeleted) {
-			customerCreated = await prisma.customer.update({
-				where: { id: existingCustomerDeleted.id },
-				data: {
-					customerName,
-					mobile,
-					deletedAt: null,
-					companyId: req.companyId,
-				},
-			});
-		} else {
-			customerCreated = await prisma.customer.create({
-				data: { customerName, mobile, companyId: Number(req.companyId) },
-			});
-		}
-
-		res.send(customerCreated);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.put("/customers/:id", async (req: CustomerRequest, res: Response) => {
-	const { id } = req.params;
-	const { customerName, mobile } = req.body;
-
-	try {
-		await customerSchema.validate(req.body, { abortEarly: false });
-
-		const customerId = await prisma.customer.findUnique({
-			where: { id: parseInt(id) },
-		});
-
-		if (!customerId)
-			return res.status(400).send({ error: "Customer not found" });
-
-		const existingCustomer = await prisma.customer.findFirst({
-			where: {
-				NOT: { id: parseInt(id) },
-				companyId: req.companyId,
-				mobile,
-			},
-		});
-
-		if (existingCustomer) {
-			const errorResponse: ErrorResponse = {
-				errors: [{ message: "Número do celular já está em uso" }],
-			};
-
-			return res.status(400).json(errorResponse);
-		}
-
-		const customer = await prisma.customer.update({
-			where: { id: parseInt(id) },
-			data: { customerName, mobile, companyId: req.companyId },
-		});
-
-		res.send(customer);
-	} catch (err) {
-		handleYupError(err, res);
-	}
-});
-
-app.delete("/customers/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const customerId = await prisma.customer.findUnique({
-		where: { id: parseInt(id) },
-	});
-
-	if (!customerId) return res.status(400).send({ error: "Customer not found" });
-
-	const customerSchedulesExists = await prisma.schedule.findFirst({
-		where: { customerId: parseInt(id) },
-	});
-
-	if (customerSchedulesExists) {
-		const errorResponse: ErrorResponse = {
-			errors: [
-				{ message: "Cliente possui agendamentos, não é possível deletar" },
-			],
-		};
-
-		return res.status(400).json(errorResponse);
-	}
-
-	const customerDeleted = await prisma.customer.update({
-		where: { id: parseInt(id) },
-		data: { deletedAt: new Date() },
-	});
-
-	res.send(customerDeleted);
-});
 
 app.get("/avaliable-times", async (req: Request, res: Response) => {
 	const { date } = req.query;
