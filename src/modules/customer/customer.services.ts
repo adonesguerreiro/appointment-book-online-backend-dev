@@ -9,7 +9,7 @@ export const countAllCustomersByCompanyId = async (companyId: number) => {
 
 export const findCustomerById = async (id: number, companyId: number) => {
 	return await prisma.customer.findFirst({
-		where: { id, companyId },
+		where: { id, companyId, deletedAt: null },
 	});
 };
 

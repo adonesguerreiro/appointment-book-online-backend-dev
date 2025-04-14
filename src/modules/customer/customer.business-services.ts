@@ -27,7 +27,7 @@ export const getAllCustomersByCompanyId = async (
 		);
 
 		if (!customersExists) {
-			throw new Error("Schedules not found");
+			throw new Error("Customer not found");
 		}
 
 		return { customersExists, totalPages };
