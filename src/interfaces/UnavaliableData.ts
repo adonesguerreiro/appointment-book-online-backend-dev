@@ -3,4 +3,5 @@ export interface UnavaliableData {
 	startTime: string;
 	endTime: string;
 	companyId: number;
+	deletedAt?: Date | null;
 }

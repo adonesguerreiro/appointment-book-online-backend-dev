@@ -19,9 +19,7 @@ import { ScheduleData } from "./interfaces/ScheduleData";
 import { handleYupError } from "./utils/handleYupError";
 import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
 import { dateConvertDay } from "./utils/dateConvertDay";
-// import cloudinary from "./config/cloudinary";
-// import multer from "multer";
-// import fs from "fs";
+
 import { sessions } from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
@@ -34,7 +32,10 @@ import * as servicesControllers from "./modules/services/services.controller";
 import * as schedulesControllers from "./modules/schedule/schedule.controller";
 import * as customersControllers from "./modules/customer/customer.controller";
 import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTimes.controller";
-// import { upload } from "./middlewares/upload";
+import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
+import multer from "multer";
+import cloudinary from "./config/cloudinary";
+import fs from "fs";
 
 dotenv.config();
 
@@ -353,252 +354,66 @@ app.delete(
 	avaliableTimesControllers.deleteAvaliableTime
 );
 
-// const upload = multer({ dest: "uploads/" });
-
-// app.put(
-// 	"/upload",
-// 	upload.single("avatarUrl"),
-// 	async (req: Request, res: Response) => {
-// 		const file = req.file;
-
-// 		if (!file) {
-// 			return res.status(400).json({ error: "No file uploaded" });
-// 		}
-
-// 		const existingUserAvatar = await prisma.user.findUnique({
-// 			where: { id: Number(req.userId) },
-// 		});
-
-// 		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
-// 			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
-// 		}
-
-// 		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
-// 			folder: "profilePhotoUsers",
-// 			overwrite: true,
-// 			format: "webp",
-// 		});
-// 		fs.unlinkSync(file?.path!);
-
-// 		const userUpdated = await prisma.user.update({
-// 			where: { id: Number(req.userId) },
-// 			data: {
-// 				avatarUrl: cloudinaryResponse.secure_url,
-// 				avatarPublicId: cloudinaryResponse.public_id,
-// 			},
-// 		});
-
-// 		res.send(userUpdated);
-// 	}
-// );
-
-app.get("/unavaliable-times", async (req: Request, res: Response) => {
-	const page = Math.max(1, parseInt(req.query.page as string) || 1);
-	const limit = Math.min(
-		100,
-		Math.max(1, parseInt(req.query.limit as string) || 10)
-	);
-	const skip = (page - 1) * limit;
-
-	const totalItems = await prisma.unavaliableTime.count({
-		where: { companyId: req.companyId },
-	});
-
-	const totalPages = Math.ceil(totalItems / limit);
-
-	if (page > totalPages) {
-		return res.status(404).send({ error: "Página não encontrada" });
-	}
-
-	const unavaliableTimes = await prisma.unavaliableTime.findMany({
-		where: { companyId: req.companyId, deletedAt: null },
-		skip: skip,
-		take: limit,
-		orderBy: { date: "asc" },
-	});
-
-	res.send({ unavaliableTimes, totalPages, currentPage: page });
-});
-
-app.get("/unavaliable-times/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
-
-	const unavaliableTimeId = await prisma.unavaliableTime.findUnique({
-		where: { id: parseInt(id), deletedAt: null },
-	});
-
-	if (!unavaliableTimeId)
-		return res.status(400).send({ error: "Unavailable times not found" });
-
-	res.send(unavaliableTimeId);
-});
-
-interface UnavaliableRequest extends Request {
-	body: UnavaliableData;
-}
-
+// Horário indisponível
+app.get(
+	"/unavaliable-times",
+	unavaliableTimesControllers.getAllAvaliableTimesByCompanyId
+);
+app.get(
+	"/unavaliable-times/:id",
+	unavaliableTimesControllers.getUnavaliableTimeById
+);
 app.post(
 	"/unavaliable-times",
-	async (req: UnavaliableRequest, res: Response) => {
-		const { date, startTime, endTime } = req.body;
-
-		try {
-			await unavaliableSchema.validate(req.body, { abortEarly: false });
-
-			const existingDate = await prisma.unavaliableTime.findFirst({
-				where: {
-					date,
-					companyId: req.companyId,
-					deletedAt: null,
-				},
-			});
-
-			if (existingDate?.date) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Data já está em uso" }],
-				};
-
-				return res.status(400).json(errorResponse);
-			}
-
-			const startOfDayDate = date.split("T")[0] + `T${startTime}:00.000Z`;
-			const endOfDayDate = date.split("T")[0] + `T${endTime}:00.000Z`;
-
-			const existingSchedule = await prisma.schedule.findFirst({
-				where: {
-					date: {
-						gte: startOfDayDate,
-						lte: endOfDayDate,
-					},
-					status: "SCHEDULED",
-					companyId: req.companyId,
-				},
-			});
-
-			if (existingSchedule) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Já existe um agendamento para este período." }],
-				};
-
-				return res.status(400).json(errorResponse);
-			}
-
-			let unavaliableTimeCreated;
-
-			const existingDateDeleted = await prisma.unavaliableTime.findFirst({
-				where: {
-					date,
-					companyId: req.companyId,
-					NOT: {
-						deletedAt: null,
-					},
-				},
-			});
-
-			if (existingDateDeleted) {
-				unavaliableTimeCreated = await prisma.unavaliableTime.update({
-					where: { id: existingDateDeleted.id },
-					data: {
-						startTime,
-						endTime,
-						deletedAt: null,
-					},
-				});
-			} else {
-				unavaliableTimeCreated = await prisma.unavaliableTime.create({
-					data: { date, startTime, endTime, companyId: Number(req.companyId) },
-				});
-			}
-
-			res.send(unavaliableTimeCreated);
-		} catch (err) {
-			handleYupError(err, res);
-		}
-	}
+	unavaliableTimesControllers.createUnavaliableTime
 );
-
 app.put(
 	"/unavaliable-times/:id",
-	async (req: UnavaliableRequest, res: Response) => {
-		const { id } = req.params;
-		const { date, startTime, endTime } = req.body;
-
-		try {
-			await unavaliableSchema.validate(req.body, { abortEarly: false });
-
-			const unavaliableTimeId = await prisma.unavaliableTime.findUnique({
-				where: { id: parseInt(id) },
-			});
-
-			if (!unavaliableTimeId)
-				return res.status(400).send({ error: "Unavaliable time not found" });
-
-			const existingDate = await prisma.unavaliableTime.findFirst({
-				where: {
-					date,
-					companyId: req.companyId,
-				},
-			});
-
-			if (existingDate?.date) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Data já está em uso." }],
-				};
-
-				return res.status(400).json(errorResponse);
-			}
-
-			const startOfDayDate = date.split("T")[0] + `T${startTime}:00.000Z`;
-			const endOfDayDate = date.split("T")[0] + `T${endTime}:00.000Z`;
-
-			const existingSchedule = await prisma.schedule.findFirst({
-				where: {
-					date: {
-						gte: startOfDayDate,
-						lte: endOfDayDate,
-					},
-					status: "SCHEDULED",
-					companyId: Number(req.userId),
-				},
-			});
-
-			if (existingSchedule) {
-				const errorResponse: ErrorResponse = {
-					errors: [{ message: "Já existe um agendamento para este período." }],
-				};
-
-				return res.status(400).json(errorResponse);
-			}
-
-			const unavaliableUpdated = await prisma.unavaliableTime.update({
-				where: { id: parseInt(id) },
-				data: { date, startTime, endTime },
-			});
-
-			res.send(unavaliableUpdated);
-		} catch (err) {
-			handleYupError(err, res);
-		}
-	}
+	unavaliableTimesControllers.updateUnavaliableTime
+);
+app.delete(
+	"/unavaliable-times/:id",
+	unavaliableTimesControllers.deleteUnavaliableTime
 );
 
-app.delete("/unavailable-times/:id", async (req: Request, res: Response) => {
-	const { id } = req.params;
+const upload = multer({ dest: "uploads/" });
 
-	const unavaliableTimeId = await prisma.unavaliableTime.findUnique({
-		where: { id: parseInt(id) },
-	});
+app.put(
+	"/upload",
+	upload.single("avatarUrl"),
+	async (req: Request, res: Response) => {
+		const file = req.file;
 
-	if (!unavaliableTimeId)
-		return res.status(400).send({ error: "Unavaliable time not found" });
+		if (!file) {
+			return res.status(400).json({ error: "No file uploaded" });
+		}
 
-	const unavaliableDeleted = await prisma.unavaliableTime.update({
-		where: { id: parseInt(id) },
-		data: { deletedAt: new Date() },
-	});
+		const existingUserAvatar = await prisma.user.findUnique({
+			where: { id: Number(req.userId) },
+		});
 
-	res.send(unavaliableDeleted);
-});
+		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
+			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
+		}
+
+		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
+			folder: "profilePhotoUsers",
+			overwrite: true,
+			format: "webp",
+		});
+		fs.unlinkSync(file?.path!);
+
+		const userUpdated = await prisma.user.update({
+			where: { id: Number(req.userId) },
+			data: {
+				avatarUrl: cloudinaryResponse.secure_url,
+				avatarPublicId: cloudinaryResponse.public_id,
+			},
+		});
+
+		res.send(userUpdated);
+	}
+);
 
 app.listen(port, () => {
 	console.log(`Server running on port ${port}`);
