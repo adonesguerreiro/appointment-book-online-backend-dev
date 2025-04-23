@@ -36,8 +36,10 @@ export const authSession = async (sessionData: SessionData) => {
 			name,
 			email,
 			token: jwt.sign({ id }, authConfig.secret, {
-				expiresIn: authConfig.expiresIn,
+				algorithm: "HS256",
+				allowInsecureKeySizes: true,
 			}),
+			expiresIn: authConfig.expiresIn,
 		};
 	} catch (err) {
 		throw err;

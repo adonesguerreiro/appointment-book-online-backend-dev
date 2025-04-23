@@ -24,7 +24,6 @@ import { sessions } from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
 import * as usersControllers from "./modules/users/users.controller";
-// import * as uploadController from "./modules/upload/uploadAvatar.controller";
 import * as dashboardController from "./modules/dashboard/dashboard.controller";
 import * as companiesControllers from "./modules/companies/companies.controller";
 import * as addressesControllers from "./modules/address/address.controller";
@@ -36,6 +35,8 @@ import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavali
 import multer from "multer";
 import cloudinary from "./config/cloudinary";
 import fs from "fs";
+import { uploadToCloudinary } from "./modules/upload/cloudinary.services";
+import { upload } from "./middlewares/upload";
 
 dotenv.config();
 
@@ -245,55 +246,10 @@ app.get("/users/id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
 app.put("/users", usersControllers.updateUser);
 
-// app.put(
-// 	"/upload",
-// 	upload.single("avatarUrl"),
-// 	uploadController.uploadProfilePhoto
-// );//*
-
 app.get(
 	"/dashboard/month/:month/year/:year",
 	dashboardController.dashboardPerMonthAndYear
 );
-
-// const upload = multer({ dest: "uploads/" });
-
-// app.put(
-// 	"/upload",
-// 	upload.single("avatarUrl"),
-// 	async (req: Request, res: Response) => {
-// 		const file = req.file;
-
-// 		if (!file) {
-// 			return res.status(400).json({ error: "No file uploaded" });
-// 		}
-
-// 		const existingUserAvatar = await prisma.user.findUnique({
-// 			where: { id: Number(req.userId) },
-// 		});
-
-// 		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
-// 			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
-// 		}
-
-// 		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
-// 			folder: "profilePhotoUsers",
-// 			overwrite: true,
-// 			format: "webp",
-// 		});
-// 		fs.unlinkSync(file?.path!);
-
-// 		const userUpdated = await prisma.user.update({
-// 			where: { id: Number(req.userId) },
-// 			data: {
-// 				avatarUrl: cloudinaryResponse.secure_url,
-// 				avatarPublicId: cloudinaryResponse.public_id,
-// 			},
-// 		});
-
-// 		res.send(userUpdated);
-// 	}
-// );
 
 app.use(auth);
 // Usuário
@@ -376,42 +332,39 @@ app.delete(
 	unavaliableTimesControllers.deleteUnavaliableTime
 );
 
-const upload = multer({ dest: "uploads/" });
-
 app.put(
 	"/upload",
 	upload.single("avatarUrl"),
 	async (req: Request, res: Response) => {
-		const file = req.file;
+		try {
+			const file = req.file;
+			if (!file) {
+				return res.status(400).json({ error: "No file uploaded" });
+			}
 
-		if (!file) {
-			return res.status(400).json({ error: "No file uploaded" });
+			const existingUserAvatar = await prisma.user.findUnique({
+				where: { id: Number(req.userId) },
+			});
+
+			if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
+				await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
+			}
+
+			const cloudinaryResponse = await uploadToCloudinary(file!);
+
+			const userUpdated = await prisma.user.update({
+				where: { id: Number(req.userId) },
+				data: {
+					avatarUrl: cloudinaryResponse.secure_url,
+					avatarPublicId: cloudinaryResponse.public_id,
+				},
+			});
+
+			res.send(userUpdated);
+		} catch (error) {
+			console.error("Error uploading file:", error);
+			return res.status(500).json({ error: "Error uploading file" });
 		}
-
-		const existingUserAvatar = await prisma.user.findUnique({
-			where: { id: Number(req.userId) },
-		});
-
-		if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
-			await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
-		}
-
-		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
-			folder: "profilePhotoUsers",
-			overwrite: true,
-			format: "webp",
-		});
-		fs.unlinkSync(file?.path!);
-
-		const userUpdated = await prisma.user.update({
-			where: { id: Number(req.userId) },
-			data: {
-				avatarUrl: cloudinaryResponse.secure_url,
-				avatarPublicId: cloudinaryResponse.public_id,
-			},
-		});
-
-		res.send(userUpdated);
 	}
 );
 
