@@ -3,10 +3,14 @@ import fs from "fs";
 import * as userServices from "../users/users.services";
 import * as uploadServices from "./uploadAvatar.services";
 import { UserData } from "../../interfaces/UserData";
+import { uploadToCloudinary } from "./cloudinary.services";
+import { passwordValid } from "../../utils/passwordValid";
+import { ApiError } from "../../utils/apiError";
+import { hashPassword } from "../../utils/hashPassword";
 
 export const uploadProfilePhoto = async (
 	id: number,
-	file: any,
+	file: Express.Multer.File,
 	data: UserData
 ) => {
 	const userExists = await userServices.findUserById(id);
@@ -19,16 +23,20 @@ export const uploadProfilePhoto = async (
 			await cloudinary.uploader.destroy(userExists.avatarPublicId!);
 		}
 
-		const cloudinaryResponse = await cloudinary.uploader.upload(file?.path!, {
-			folder: "profilePhotoUsers",
-			overwrite: true,
-			format: "webp",
-		});
+		const cloudinaryResponse = await uploadToCloudinary(file!);
 
+		const isPasswordValid = await passwordValid(
+			data.password,
+			userExists.password
+		);
+
+		if (!isPasswordValid) {
+			throw new ApiError("Senha inválida", 400);
+		}
+
+		data.password = await hashPassword(data.password);
 		data.avatarUrl = cloudinaryResponse.secure_url;
 		data.avatarPublicId = cloudinaryResponse.public_id;
-
-		fs.unlinkSync(file?.path!);
 
 		const upload = await uploadServices.uploadProfilePhoto(id, data);
 

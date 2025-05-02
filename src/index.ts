@@ -1,25 +1,7 @@
-import { AddressData } from "./interfaces/AddressData";
-import { DayWeek, PrismaClient } from "@prisma/client";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
-import { ErrorResponse } from "./interfaces/ErrorResponse";
-import { addressSchema } from "./schemas/addressSchema";
-import { serviceSchema } from "./schemas/serviceSchema";
-import { customerSchema } from "./schemas/customerSchema";
-import { avaliableSchema } from "./schemas/avaliableSchema";
-import { unavaliableSchema } from "./schemas/unavaliableSchema";
-import { ServiceData } from "./interfaces/ServiceData";
-import { CustomerData } from "./interfaces/CustomerData";
-import { AvailableTimeData } from "./interfaces/AvailableTimeData";
-import { UnavaliableData } from "./interfaces/UnavaliableData";
 import auth from "./middlewares/auth";
-import { scheduleSchema } from "./schemas/scheduleSchema";
-import { ScheduleData } from "./interfaces/ScheduleData";
-import { handleYupError } from "./utils/handleYupError";
-import { generateAvaliableTimes } from "./utils/generateAvaliableTimes";
-import { dateConvertDay } from "./utils/dateConvertDay";
-
 import { sessions } from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
@@ -32,17 +14,16 @@ import * as schedulesControllers from "./modules/schedule/schedule.controller";
 import * as customersControllers from "./modules/customer/customer.controller";
 import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTimes.controller";
 import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
-import multer from "multer";
+import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
 import cloudinary from "./config/cloudinary";
-import fs from "fs";
-import { uploadToCloudinary } from "./modules/upload/cloudinary.services";
+import { uploadToCloudinary } from "./modules/uploadAvatar/cloudinary.services";
 import { upload } from "./middlewares/upload";
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
-const prisma = new PrismaClient();
+console.log(port);
 
 app.use(express.json());
 app.use(cors());
@@ -258,6 +239,13 @@ app.get("/users/id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
 app.put("/users", usersControllers.updateUser);
 
+// Upload de imagem perfil
+app.put(
+	"/upload",
+	upload.single("avatarUrl"),
+	uploadAvatarControllers.uploadProfilePhoto
+);
+
 // Dashboard por mês e ano
 app.get(
 	"/dashboard/month/:month/year/:year",
@@ -330,42 +318,6 @@ app.put(
 app.delete(
 	"/unavaliable-times/:id",
 	unavaliableTimesControllers.deleteUnavaliableTime
-);
-
-app.put(
-	"/upload",
-	upload.single("avatarUrl"),
-	async (req: Request, res: Response) => {
-		try {
-			const file = req.file;
-			if (!file) {
-				return res.status(400).json({ error: "No file uploaded" });
-			}
-
-			const existingUserAvatar = await prisma.user.findUnique({
-				where: { id: Number(req.userId) },
-			});
-
-			if (existingUserAvatar?.avatarUrl && existingUserAvatar?.avatarPublicId) {
-				await cloudinary.uploader.destroy(existingUserAvatar?.avatarPublicId!);
-			}
-
-			const cloudinaryResponse = await uploadToCloudinary(file!);
-
-			const userUpdated = await prisma.user.update({
-				where: { id: Number(req.userId) },
-				data: {
-					avatarUrl: cloudinaryResponse.secure_url,
-					avatarPublicId: cloudinaryResponse.public_id,
-				},
-			});
-
-			res.send(userUpdated);
-		} catch (error) {
-			console.error("Error uploading file:", error);
-			return res.status(500).json({ error: "Error uploading file" });
-		}
-	}
 );
 
 app.listen(port, () => {

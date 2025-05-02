@@ -30,6 +30,7 @@ export const authSession = async (sessionData: SessionData) => {
 		}
 
 		const { id, name } = userExists;
+		console.log(authConfig);
 
 		return {
 			existingUser: id,
