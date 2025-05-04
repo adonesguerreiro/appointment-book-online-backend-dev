@@ -15,15 +15,12 @@ import * as customersControllers from "./modules/customer/customer.controller";
 import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTimes.controller";
 import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
 import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
-import cloudinary from "./config/cloudinary";
-import { uploadToCloudinary } from "./modules/uploadAvatar/cloudinary.services";
 import { upload } from "./middlewares/upload";
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
-console.log(port);
 
 app.use(express.json());
 app.use(cors());

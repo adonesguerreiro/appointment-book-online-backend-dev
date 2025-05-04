@@ -3,6 +3,8 @@ import * as companiesBusinessServices from "./companies.business-services";
 import { CompanyData } from "../../interfaces/CompanyData";
 import { handleYupError } from "../../utils/handleYupError";
 
+import slugify from "slugify";
+
 export const getAllCompanies = async (req: Request, res: Response) => {
 	try {
 		const page = parseInt(req.query.page as string) || 1;
@@ -39,13 +41,14 @@ interface CompanyRequest extends Request {
 
 export const createCompany = async (req: CompanyRequest, res: Response) => {
 	try {
-		const { name, mobile, email, cnpj, slug } = req.body;
+		const { name, mobile, email, cnpj } = req.body;
+
 		const company = await companiesBusinessServices.createCompany({
 			name,
 			mobile,
 			email,
 			cnpj,
-			slug,
+			slugCompany: slugify(name, { lower: true, strict: true }),
 		});
 		res.send(company);
 	} catch (err) {
@@ -58,7 +61,7 @@ export const createCompany = async (req: CompanyRequest, res: Response) => {
 
 export const updateCompany = async (req: CompanyRequest, res: Response) => {
 	try {
-		const { name, mobile, email, cnpj, slug } = req.body;
+		const { name, mobile, email, cnpj } = req.body;
 		const company = await companiesBusinessServices.updateCompany(
 			Number(req.companyId),
 			{
@@ -66,7 +69,7 @@ export const updateCompany = async (req: CompanyRequest, res: Response) => {
 				mobile,
 				email,
 				cnpj,
-				slug,
+				slugCompany: slugify(name, { lower: true, strict: true }),
 			}
 		);
 		res.send(company);
