@@ -1,18 +1,21 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import slugify from "slugify";
 
 const prisma = new PrismaClient();
 
 async function main() {
 	const companyCreated = await prisma.company.upsert({
-		where: { slug: "adthasoftware" },
+		where: {
+			slugCompany: slugify("Adtha Software", { lower: true, strict: true }),
+		},
 		update: {},
 		create: {
 			name: "Adtha Software",
 			mobile: "65996731038",
 			email: "adthasoftware@gmail.com",
 			cnpj: "12.345.678/0001-91",
-			slug: "adthasoftware",
+			slugCompany: slugify("Adtha Software", { lower: true, strict: true }),
 		},
 	});
 

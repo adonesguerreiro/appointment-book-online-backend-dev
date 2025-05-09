@@ -16,6 +16,10 @@ import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTi
 import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
 import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
 import { upload } from "./middlewares/upload";
+import { prisma } from "./config/prisma";
+import { dateConvertDay } from "./utils/dateConvertDay";
+import { DayWeek } from "@prisma/client";
+import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -33,189 +37,137 @@ app.get("/", (req: Request, res: Response) => {
 	res.send({ message });
 });
 
+app.get("/public/:slugCompany", async (req: Request, res: Response) => {
+	const { slugCompany } = req.params;
+	const { date } = req.query;
+
+	const startTimeDate = dayjs(date as string)
+		.startOf("day")
+		.toDate();
+	const endTimeDate = dayjs(date as string)
+		.endOf("day")
+		.toDate();
+
+	if (!slugCompany) {
+		return res.status(400).send({ error: "Slug da empresa é obrigatório" });
+	}
+
+	let company = null;
+
+	if (date !== "undefined") {
+		const formattedDate = dayjs(date as string).format("YYYY-MM-DD");
+		const convertDateDay = await dateConvertDay(formattedDate);
+		const day = convertDateDay as DayWeek;
+
+		company = await prisma.company.findFirst({
+			where: { slugCompany },
+			select: {
+				id: true,
+				mobile: true,
+				users: {
+					select: {
+						id: true,
+						name: true,
+						avatarUrl: true,
+					},
+				},
+				services: {
+					select: {
+						id: true,
+						serviceName: true,
+					},
+				},
+				avaliableTimeSlot: {
+					select: {
+						id: true,
+						timeSlot: true,
+					},
+					where: {
+						avaliableTime: {
+							day,
+						},
+						schedules: {
+							none: {
+								date: {
+									gte: startTimeDate,
+									lte: endTimeDate,
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+	} else {
+		company = await prisma.company.findFirst({
+			where: { slugCompany },
+			select: {
+				id: true,
+				mobile: true,
+				users: {
+					select: {
+						id: true,
+						name: true,
+						avatarUrl: true,
+					},
+				},
+				services: {
+					select: {
+						id: true,
+						serviceName: true,
+					},
+				},
+			},
+		});
+	}
+
+	res.send({ company });
+
+	// const company = await prisma.company.findUnique({
+	// 	where: { slugCompany },
+	// 	select: {
+	// 		id: true,
+	// 		mobile: true,
+	// 		users: {
+	// 			select: {
+	// 				id: true,
+	// 				name: true,
+	// 				avatarUrl: true,
+	// 			},
+	// 		},
+	// 		services: {
+	// 			select: {
+	// 				id: true,
+	// 				serviceName: true,
+	// 			},
+	// 		},
+	// 		AvaliableTimeSlot: {
+	// 			select: {
+	// 				timeSlot: true,
+	// 				AvaliableTime: {
+	// 					select: {
+	// 						id: true,
+	// 						day: true,
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 		schedules: {
+	// 			select: {
+	// 				id: true,
+	// 				date: true,
+	// 			},
+	// 			// where: {
+	// 			// 	date: typeof date === "string" ? new Date(date) : undefined,
+	// 			// },
+	// 		},
+	// 	},
+	// });
+});
 // Autenticação - Login, Esqueci minha senha e Reset de senha
 app.post("/sessions", sessions);
 app.post("/forgot-password", forgotPassword);
 app.post("/reset-password", resetPassword);
-
-// 	try {
-// 		const { email } = req.body;
-// 		const user = await prisma.user.findUnique({
-// 			where: { email },
-// 		});
-
-// 	try {
-// 		const { email } = req.body;
-// 		const user = await prisma.user.findUnique({
-// 			where: { email },
-// 		});
-
-// 		if (user) {
-// 			const token = jwt.sign({ userId: user.id }, authConfig.secret, {
-// 				expiresIn: "5m",
-// 			});
-// 		if (user) {
-// 			const token = jwt.sign({ userId: user.id }, authConfig.secret, {
-// 				expiresIn: "5m",
-// 			});
-
-// 			const mailerSend = new MailerSend({
-// 				apiKey: process.env.API_EMAIL_KEY || "",
-// 			});
-// 			const mailerSend = new MailerSend({
-// 				apiKey: process.env.API_EMAIL_KEY || "",
-// 			});
-
-// 			const sentFrom = new Sender(
-// 				`${process.env.API_SMTP_KEY}`,
-// 				"AdthaSoftware"
-// 			);
-// 			const sentFrom = new Sender(
-// 				`${process.env.API_SMTP_KEY}`,
-// 				"AdthaSoftware"
-// 			);
-
-// 			const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
-// 			console.log(recipients[0].name);
-// 			const recipients = [new Recipient(`${user.email}`, `${user.name}`)];
-// 			console.log(recipients[0].name);
-
-// 			const personalization = [
-// 				{
-// 					email: `${user.email}`,
-// 					data: {
-// 						user: {
-// 							name: `${recipients[0].name}`,
-// 							email: `${recipients[0].email}`,
-// 						},
-// 						action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
-// 						support_url: "https://wa.me/65996731038",
-// 						account_name: `${user.name}`,
-// 					},
-// 				},
-// 			];
-// 			const personalization = [
-// 				{
-// 					email: `${user.email}`,
-// 					data: {
-// 						user: {
-// 							name: `${recipients[0].name}`,
-// 							email: `${recipients[0].email}`,
-// 						},
-// 						action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
-// 						support_url: "https://wa.me/65996731038",
-// 						account_name: `${user.name}`,
-// 					},
-// 				},
-// 			];
-
-// 			const emailParams = new EmailParams()
-// 				.setFrom(sentFrom)
-// 				.setTo(recipients)
-// 				.setSubject("Subject")
-// 				.setTemplateId("zr6ke4n7e2mgon12")
-// 				.setPersonalization(personalization);
-// 			const emailParams = new EmailParams()
-// 				.setFrom(sentFrom)
-// 				.setTo(recipients)
-// 				.setSubject("Subject")
-// 				.setTemplateId("zr6ke4n7e2mgon12")
-// 				.setPersonalization(personalization);
-
-// 			try {
-// 				await mailerSend.email.send(emailParams);
-// 				res.status(200).send({
-// 					message: "Email enviado com sucesso, verifique sua caixa de entrada.",
-// 				});
-// 			} catch (error) {
-// 				console.error("Error sending email:", error);
-// 				res
-// 					.status(500)
-// 					.send({ error: "Erro ao enviar o email, tente novamente." });
-// 			}
-// 		}
-// 			try {
-// 				await mailerSend.email.send(emailParams);
-// 				res.status(200).send({
-// 					message: "Email enviado com sucesso, verifique sua caixa de entrada.",
-// 				});
-// 			} catch (error) {
-// 				console.error("Error sending email:", error);
-// 				res
-// 					.status(500)
-// 					.send({ error: "Erro ao enviar o email, tente novamente." });
-// 			}
-// 		}
-
-// 		res.status(200).send({
-// 			message:
-// 				"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
-// 		});
-// 	} catch (err) {
-// 		handleYupError(err, res);
-// 	}
-// });
-
-// app.post("/reset-password", async (req: Request, res: Response) => {
-// 	const { newPassword } = req.body;
-// 	const token = req.query.token as string;
-// 	try {
-// 		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
-// 		if (!payload) {
-// 			res.status(401).send({ error: "Token inválido ou expirado." });
-// 			return;
-// 		}
-// 		res.status(200).send({
-// 			message:
-// 				"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
-// 		});
-// 	} catch (err) {
-// 		handleYupError(err, res);
-// 	}
-// });
-
-// app.post("/reset-password", async (req: Request, res: Response) => {
-// 	const { newPassword } = req.body;
-// 	const token = req.query.token as string;
-// 	try {
-// 		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
-// 		if (!payload) {
-// 			res.status(401).send({ error: "Token inválido ou expirado." });
-// 			return;
-// 		}
-
-// 		const user = await prisma.user.findUnique({
-// 			where: { id: payload.userId },
-// 		});
-// 		const user = await prisma.user.findUnique({
-// 			where: { id: payload.userId },
-// 		});
-
-// 		if (!user) {
-// 			res.status(401).send({ error: "Token inválido ou expirado." });
-// 			return;
-// 		}
-// 		if (!user) {
-// 			res.status(401).send({ error: "Token inválido ou expirado." });
-// 			return;
-// 		}
-
-// 		const passwordHash = await bcrypt.hash(newPassword, 10);
-// 		await prisma.user.update({
-// 			where: { id: payload.userId },
-// 			data: { password: passwordHash },
-// 		});
-// 		const passwordHash = await bcrypt.hash(newPassword, 10);
-// 		await prisma.user.update({
-// 			where: { id: payload.userId },
-// 			data: { password: passwordHash },
-// 		});
-
-// 		res.status(200).send({ message: "Senha resetada com sucesso." });
-// 	} catch (err) {
-// 		handleYupError(err, res);
-// 	}
-// });
 
 app.use(auth);
 
@@ -229,7 +181,6 @@ app.get(
 	dashboardController.dashboardPerMonthAndYear
 );
 
-app.use(auth);
 // Usuário
 app.get("/users", usersControllers.getAllUsers);
 app.get("/users/id", usersControllers.getUserById);

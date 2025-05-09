@@ -113,7 +113,6 @@ export const updateUser = async (id: number, updateData: UserData) => {
 
 		return userUpdated;
 	} catch (err) {
-		console.log(err);
 		throw err;
 	}
 };

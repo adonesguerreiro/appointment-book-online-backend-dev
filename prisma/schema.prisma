@@ -18,7 +18,7 @@ model User {
   avatarPublicId String?  @db.VarChar(255)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  companyId      Int?
+  companyId      Int
   company        Company? @relation(fields: [companyId], references: [id])
 }
 
@@ -32,8 +32,8 @@ model Company {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   addresses         Address?
-  AvaliableTime     AvaliableTime[]
-  AvaliableTimeSlot AvaliableTimeSlot[]
+  avaliableTime     AvaliableTime[]
+  avaliableTimeSlot AvaliableTimeSlot[]
   customers         Customer[]
   schedules         Schedule[]
   services          Service[]
@@ -70,22 +70,24 @@ model Service {
 }
 
 model Schedule {
-  id            Int            @id @default(autoincrement())
-  date          DateTime
-  status        ScheduleStatus @default(SCHEDULED)
-  customerId    Int
-  serviceId     Int
-  companyId     Int
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  customerName  String
-  customerPhone String
-  duration      String         @db.VarChar(255)
-  price         Decimal        @db.Decimal(10, 2)
-  serviceName   String         @db.VarChar(255)
-  company       Company        @relation(fields: [companyId], references: [id])
-  customer      Customer       @relation(fields: [customerId], references: [id])
-  service       Service        @relation(fields: [serviceId], references: [id])
+  id                Int               @id @default(autoincrement())
+  date              DateTime
+  status            ScheduleStatus    @default(SCHEDULED)
+  customerId        Int
+  serviceId         Int
+  companyId         Int
+  timeSlotId        Int
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  customerName      String
+  customerPhone     String
+  duration          String            @db.VarChar(255)
+  price             Decimal           @db.Decimal(10, 2)
+  serviceName       String            @db.VarChar(255)
+  company           Company           @relation(fields: [companyId], references: [id])
+  customer          Customer          @relation(fields: [customerId], references: [id])
+  service           Service           @relation(fields: [serviceId], references: [id])
+  avaliableTimeSlot AvaliableTimeSlot @relation(fields: [timeSlotId], references: [id])
 }
 
 model Customer {
@@ -136,8 +138,9 @@ model AvaliableTimeSlot {
   updatedAt       DateTime
   avaliableTimeId Int
   companyId       Int
-  AvaliableTime   AvaliableTime @relation(fields: [avaliableTimeId], references: [id])
+  avaliableTime   AvaliableTime @relation(fields: [avaliableTimeId], references: [id])
   Company         Company       @relation(fields: [companyId], references: [id])
+  schedules       Schedule[]
 
   @@unique([timeSlot, avaliableTimeId, companyId])
 }

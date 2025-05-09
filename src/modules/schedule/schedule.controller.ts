@@ -105,6 +105,18 @@ export const createSchedule = async (req: Request, res: Response) => {
 			});
 		}
 
+		const timeSlotIdExists =
+			await scheduleBussinessServices.getTimeSlotByCompanyId(
+				timeSlotAvaliable,
+				Number(req.companyId)
+			);
+
+		if (!timeSlotIdExists) {
+			return res.status(400).json({
+				message: "Este intervalo de tempo não existe.",
+			});
+		}
+
 		const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
 
 		const scheduleCreated = await scheduleBussinessServices.createSchedule({
@@ -115,6 +127,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 			serviceName: serviceIdExists.serviceName,
 			duration: serviceIdExists.duration,
 			price: serviceIdExists.price.toNumber(),
+			timeSlotId: timeSlotIdExists.id,
 			date: formattedDate,
 			status,
 			companyId: Number(req.companyId),
@@ -175,6 +188,18 @@ export const updateSchedule = async (req: Request, res: Response) => {
 			});
 		}
 
+		const timeSlotIdExists =
+			await scheduleBussinessServices.getTimeSlotByCompanyId(
+				timeSlotAvaliable,
+				Number(req.companyId)
+			);
+
+		if (!timeSlotIdExists) {
+			return res.status(400).json({
+				message: "Este intervalo de tempo não existe.",
+			});
+		}
+
 		const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
 
 		const scheduleUpdated = await scheduleBussinessServices.updateSchedule(
@@ -187,6 +212,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 				serviceName: serviceIdExists.serviceName,
 				duration: serviceIdExists.duration,
 				price: serviceIdExists.price.toNumber(),
+				timeSlotId: timeSlotIdExists.id,
 				date: formattedDate,
 				status,
 				companyId: Number(req.companyId),

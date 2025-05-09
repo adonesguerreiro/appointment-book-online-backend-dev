@@ -12,4 +12,5 @@ export interface ScheduleData {
 	status: ScheduleStatus;
 	timeSlotAvaliable?: string;
 	companyId: number;
+	timeSlotId: number;
 }

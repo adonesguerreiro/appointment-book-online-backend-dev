@@ -57,6 +57,15 @@ export const findScheduleByDateAndStatus = async (
 	});
 };
 
+export const findTimeSlotByCompanyId =  async(timeSlot: string, companyId: number ) => {
+	return await prisma.avaliableTimeSlot.findFirst({
+		where: {
+			timeSlot,
+			companyId,
+		}
+	})
+}
+
 export const createSchedule = async (data: ScheduleData) => {
 	return await prisma.schedule.create({ data });
 };

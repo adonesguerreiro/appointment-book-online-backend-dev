@@ -19,6 +19,14 @@ declare module "express-serve-static-core" {
 }
 
 export default async (req: Request, res: Response, next: NextFunction) => {
+	const publicRoutes = ["/", "/forgot-password", "/reset-password"];
+	const isPublicRoute =
+		publicRoutes.includes(req.path) || req.path.startsWith("/public/");
+
+	if (isPublicRoute) {
+		return next();
+	}
+
 	const authHeader = req.headers.authorization;
 
 	if (!authHeader) {

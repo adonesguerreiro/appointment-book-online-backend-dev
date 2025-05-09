@@ -78,6 +78,26 @@ export const getScheduleTimeUnavaliable = async (
 	}
 };
 
+export const getTimeSlotByCompanyId = async (
+	timeSlot: string,
+	companyId: number
+) => {
+	try {
+		const existingTimeSlot = await scheduleServices.findTimeSlotByCompanyId(
+			timeSlot,
+			companyId
+		);
+
+		if (!existingTimeSlot) {
+			throw new ApiError("Avalible time slot not found", 400);
+		}
+
+		return existingTimeSlot;
+	} catch (err) {
+		throw err;
+	}
+};
+
 export const createSchedule = async (data: ScheduleData) => {
 	try {
 		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
