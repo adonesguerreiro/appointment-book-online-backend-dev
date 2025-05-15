@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import * as companiesBusinessServices from "./companies.business-services";
 import { CompanyData } from "../../interfaces/CompanyData";
 import { handleYupError } from "../../utils/handleYupError";
-
 import slugify from "slugify";
 
 export const getAllCompanies = async (req: Request, res: Response) => {

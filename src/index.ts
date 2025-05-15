@@ -15,11 +15,8 @@ import * as customersControllers from "./modules/customer/customer.controller";
 import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTimes.controller";
 import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
 import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
+import * as bookingControllers from "./modules/booking/booking.controller";
 import { upload } from "./middlewares/upload";
-import { prisma } from "./config/prisma";
-import { dateConvertDay } from "./utils/dateConvertDay";
-import { DayWeek } from "@prisma/client";
-import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -37,137 +34,11 @@ app.get("/", (req: Request, res: Response) => {
 	res.send({ message });
 });
 
-app.get("/public/:slugCompany", async (req: Request, res: Response) => {
-	const { slugCompany } = req.params;
-	const { date } = req.query;
-
-	const startTimeDate = dayjs(date as string)
-		.startOf("day")
-		.toDate();
-	const endTimeDate = dayjs(date as string)
-		.endOf("day")
-		.toDate();
-
-	if (!slugCompany) {
-		return res.status(400).send({ error: "Slug da empresa é obrigatório" });
-	}
-
-	let company = null;
-
-	if (date !== "undefined") {
-		const formattedDate = dayjs(date as string).format("YYYY-MM-DD");
-		const convertDateDay = await dateConvertDay(formattedDate);
-		const day = convertDateDay as DayWeek;
-
-		company = await prisma.company.findFirst({
-			where: { slugCompany },
-			select: {
-				id: true,
-				mobile: true,
-				users: {
-					select: {
-						id: true,
-						name: true,
-						avatarUrl: true,
-					},
-				},
-				services: {
-					select: {
-						id: true,
-						serviceName: true,
-					},
-				},
-				avaliableTimeSlot: {
-					select: {
-						id: true,
-						timeSlot: true,
-					},
-					where: {
-						avaliableTime: {
-							day,
-						},
-						schedules: {
-							none: {
-								date: {
-									gte: startTimeDate,
-									lte: endTimeDate,
-								},
-							},
-						},
-					},
-				},
-			},
-		});
-	} else {
-		company = await prisma.company.findFirst({
-			where: { slugCompany },
-			select: {
-				id: true,
-				mobile: true,
-				users: {
-					select: {
-						id: true,
-						name: true,
-						avatarUrl: true,
-					},
-				},
-				services: {
-					select: {
-						id: true,
-						serviceName: true,
-					},
-				},
-			},
-		});
-	}
-
-	res.send({ company });
-
-	// const company = await prisma.company.findUnique({
-	// 	where: { slugCompany },
-	// 	select: {
-	// 		id: true,
-	// 		mobile: true,
-	// 		users: {
-	// 			select: {
-	// 				id: true,
-	// 				name: true,
-	// 				avatarUrl: true,
-	// 			},
-	// 		},
-	// 		services: {
-	// 			select: {
-	// 				id: true,
-	// 				serviceName: true,
-	// 			},
-	// 		},
-	// 		AvaliableTimeSlot: {
-	// 			select: {
-	// 				timeSlot: true,
-	// 				AvaliableTime: {
-	// 					select: {
-	// 						id: true,
-	// 						day: true,
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 		schedules: {
-	// 			select: {
-	// 				id: true,
-	// 				date: true,
-	// 			},
-	// 			// where: {
-	// 			// 	date: typeof date === "string" ? new Date(date) : undefined,
-	// 			// },
-	// 		},
-	// 	},
-	// });
-});
 // Autenticação - Login, Esqueci minha senha e Reset de senha
 app.post("/sessions", sessions);
 app.post("/forgot-password", forgotPassword);
 app.post("/reset-password", resetPassword);
+app.get("/public/:slugCompany", bookingControllers.getAllTimeSlotBySlugCompany);
 
 app.use(auth);
 
