@@ -43,6 +43,18 @@ export const findScheduleTimeUnavaliable = async (
 	});
 };
 
+export const findUnavaliableTimeByDate = async (
+	date: string,
+	companyId: number
+) => {
+	return await prisma.unavaliableTime.findFirst({
+		where: {
+			date,
+			companyId,
+		},
+	});
+};
+
 export const findScheduleByDateAndStatus = async (
 	date: string,
 	status: ScheduleStatus,
@@ -57,14 +69,17 @@ export const findScheduleByDateAndStatus = async (
 	});
 };
 
-export const findTimeSlotByCompanyId =  async(timeSlot: string, companyId: number ) => {
+export const findTimeSlotByCompanyId = async (
+	timeSlot: string,
+	companyId: number
+) => {
 	return await prisma.avaliableTimeSlot.findFirst({
 		where: {
 			timeSlot,
 			companyId,
-		}
-	})
-}
+		},
+	});
+};
 
 export const createSchedule = async (data: ScheduleData) => {
 	return await prisma.schedule.create({ data });

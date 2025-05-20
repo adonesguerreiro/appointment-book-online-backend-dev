@@ -3,6 +3,8 @@ import { ApiError } from "../../utils/apiError";
 import * as bookingService from "./booking.services";
 import dayjs from "dayjs";
 import { dateConvertDay } from "../../utils/dateConvertDay";
+import * as scheduleServices from "../schedule/schedule.services";
+import { ScheduleData } from "../../interfaces/ScheduleData";
 
 export const getAllTimeSlotByCompanyId = async (
 	slugCompany: string,
@@ -55,6 +57,30 @@ export const getAllTimeSlotByCompanyId = async (
 		}
 
 		return { timeSlots: timeSlotsExists, totalPages };
+	} catch (err) {
+		throw err;
+	}
+};
+
+export const createBooking = async (data: ScheduleData) => {
+	try {
+		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
+			data.date,
+			data.status,
+			data.companyId
+		);
+
+		if (scheduleExists) {
+			throw new ApiError("Já existe agendamento para esta data e horário", 400);
+		}
+
+		const booking = await scheduleServices.createSchedule(data);
+
+		if (!booking) {
+			throw new Error("Booking not created");
+		}
+
+		return booking;
 	} catch (err) {
 		throw err;
 	}

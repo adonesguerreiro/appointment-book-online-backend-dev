@@ -1,5 +1,6 @@
 import { DayWeek } from "@prisma/client";
 import { prisma } from "../../config/prisma";
+import { date } from "yup";
 
 export const countAllTimeSlotByCompanyId = async (companyId: number) => {
 	return await prisma.avaliableTimeSlot.count({
@@ -48,23 +49,14 @@ export const findAllTimeSlot = async (
 					avaliableTime: {
 						day,
 					},
-					OR: [
-						{
-							schedules: {
-								none: {
-									date: {
-										gte: startTimeDate,
-										lte: endTimeDate,
-									},
-								},
+					schedules: {
+						none: {
+							date: {
+								gte: startTimeDate,
+								lte: endTimeDate,
 							},
 						},
-						{
-							schedules: {
-								some: {},
-							},
-						},
-					],
+					},
 				},
 				skip,
 				take: limit,

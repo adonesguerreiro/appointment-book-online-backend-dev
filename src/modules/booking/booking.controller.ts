@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import * as bookingBusinessService from "./booking.business-service";
-import * as bookingService from "./booking.services";
+import * as bookingServices from "./booking.services";
+import * as customerServices from "../customer/customer.services";
 import dayjs from "dayjs";
+
 export const getAllTimeSlotBySlugCompany = async (
 	req: Request,
 	res: Response
@@ -33,7 +35,7 @@ export const getAllTimeSlotBySlugCompany = async (
 			.endOf("day")
 			.toDate();
 
-		const findCompanyBySlug = await bookingService.findSlugCompanyByName(
+		const findCompanyBySlug = await bookingServices.findSlugCompanyByName(
 			slugCompany
 		);
 
@@ -52,6 +54,43 @@ export const getAllTimeSlotBySlugCompany = async (
 		);
 
 		res.send(timeSlot);
+	} catch (err) {
+		res.status(500).json({ error: err });
+	}
+};
+
+export const createBooking = async (req: Request, res: Response) => {
+	try {
+		const {
+			calendar,
+			customerName,
+			mobile,
+			serviceId: serviceName,
+			timeSlotAvaliable,
+		} = req.body;
+
+		const companyBySlug = await bookingServices.findSlugCompanyByName(
+			req.params.slugCompany
+		);
+
+		if (!companyBySlug) {
+			return res.status(404).send({ message: "Company not found" });
+		}
+
+		const customerExists = await customerServices.findCustomerByMobile(
+			mobile,
+			Number(companyBySlug.id)
+		);
+
+		if (!customerExists) {
+			return res.status(404).send({ message: "Customer not found" });
+		}
+
+
+
+		const booking = await bookingBusinessService.createBooking(req.body);
+
+		res.send(booking);
 	} catch (err) {
 		res.status(500).json({ error: err });
 	}

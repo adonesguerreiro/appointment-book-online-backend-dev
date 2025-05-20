@@ -1,9 +1,15 @@
+import { findUnavaliableTimeByDate } from "./../unavaliableTimes/unavaliableTimes.services";
 import { scheduleSchema } from "../../schemas/scheduleSchema";
 import { handleYupError } from "../../utils/handleYupError";
 import * as scheduleBussinessServices from "./schedule.business-services";
+import * as scheduleServices from "./schedule.services";
 import * as customerServices from "../customer/customer.services";
 import * as services from "../services/services";
 import { Request, Response } from "express";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 export const getAllSchedulesByCompanyId = async (
 	req: Request,
@@ -66,13 +72,22 @@ export const createSchedule = async (req: Request, res: Response) => {
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
-		const startOfDayDate = date.split("T")[0] + `T00:00:00.000Z`;
-		const endOfDayDate = date.split("T")[0] + `T23:59:59.000Z`;
+		const unavaliableExists = await scheduleServices.findUnavaliableTimeByDate(
+			date,
+			Number(req.companyId)
+		);
+
+		const startOfDayDate = dayjs
+			.utc(`${date.split("T")[0]}T${unavaliableExists?.startTime}:00`)
+			.toDate();
+		const endOfDayDate = dayjs
+			.utc(`${date.split("T")[0]}T${unavaliableExists?.endTime}:00`)
+			.toDate();
 
 		const existingScheduleTime =
 			await scheduleBussinessServices.getScheduleTimeUnavaliable(
-				new Date(startOfDayDate),
-				new Date(endOfDayDate),
+				startOfDayDate,
+				endOfDayDate,
 				Number(req.companyId)
 			);
 
