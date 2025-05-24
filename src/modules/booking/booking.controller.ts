@@ -2,7 +2,10 @@ import { Request, Response } from "express";
 import * as bookingBusinessService from "./booking.business-service";
 import * as bookingServices from "./booking.services";
 import * as customerServices from "../customer/customer.services";
+import * as servicesBussinessServices from "../services/services-bussiness.services";
 import dayjs from "dayjs";
+import * as scheduleBussinessServices from "../schedule/schedule.business-services";
+import { bookAppointmentSchema } from "../../schemas/bookAppointmentSchema";
 
 export const getAllTimeSlotBySlugCompany = async (
 	req: Request,
@@ -60,17 +63,19 @@ export const getAllTimeSlotBySlugCompany = async (
 };
 
 export const createBooking = async (req: Request, res: Response) => {
+	const { customerName, customerPhone, serviceId, calendar, time } = req.body;
+	const { slugCompany } = req.params;
+
 	try {
-		const {
-			calendar,
-			customerName,
-			mobile,
-			serviceId: serviceName,
-			timeSlotAvaliable,
-		} = req.body;
+		await bookAppointmentSchema.validate(req.body, { abortEarly: false });
+		const date = calendar.split("T")[0] + `T${time}:00.000Z`;
+
+		if (!date) {
+			return res.status(404).send({ message: "Date is not found" });
+		}
 
 		const companyBySlug = await bookingServices.findSlugCompanyByName(
-			req.params.slugCompany
+			slugCompany
 		);
 
 		if (!companyBySlug) {
@@ -78,20 +83,61 @@ export const createBooking = async (req: Request, res: Response) => {
 		}
 
 		const customerExists = await customerServices.findCustomerByMobile(
-			mobile,
+			customerPhone,
 			Number(companyBySlug.id)
 		);
 
+		let customerCreated = null;
 		if (!customerExists) {
-			return res.status(404).send({ message: "Customer not found" });
+			customerCreated = await customerServices.createCustomer({
+				customerName,
+				mobile: customerPhone,
+				companyId: Number(companyBySlug.id),
+			});
+		} else {
+			customerCreated = customerExists;
 		}
 
+		if (!customerCreated) {
+			return res.status(400).send({ message: "Customer creation failed" });
+		}
 
+		const serviceExists = await servicesBussinessServices.getServiceById(
+			Number(serviceId),
+			Number(companyBySlug.id)
+		);
 
-		const booking = await bookingBusinessService.createBooking(req.body);
+		if (!serviceExists) {
+			return res.status(404).send({ message: "Service not found" });
+		}
+
+		const timeSlotExists =
+			await scheduleBussinessServices.getTimeSlotByCompanyId(
+				time,
+				Number(companyBySlug.id)
+			);
+
+		if (!timeSlotExists) {
+			return res.status(404).send({ message: "Time slot not found" });
+		}
+
+		const booking = await bookingBusinessService.createBooking({
+			customerId: customerCreated.id,
+			serviceId: Number(serviceId),
+			companyId: Number(companyBySlug.id),
+			date,
+			customerName: customerCreated.customerName,
+			customerPhone: customerCreated.mobile,
+			serviceName: serviceExists.serviceName,
+			duration: serviceExists.duration,
+			price: serviceExists.price.toNumber(),
+			status: "SCHEDULED",
+			timeSlotId: timeSlotExists.id,
+		});
 
 		res.send(booking);
 	} catch (err) {
+		console.error(err);
 		res.status(500).json({ error: err });
 	}
 };

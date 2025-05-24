@@ -1,4 +1,3 @@
-import { findUnavaliableTimeByDate } from "./../unavaliableTimes/unavaliableTimes.services";
 import { scheduleSchema } from "../../schemas/scheduleSchema";
 import { handleYupError } from "../../utils/handleYupError";
 import * as scheduleBussinessServices from "./schedule.business-services";

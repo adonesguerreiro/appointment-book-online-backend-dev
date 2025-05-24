@@ -38,7 +38,9 @@ app.get("/", (req: Request, res: Response) => {
 app.post("/sessions", sessions);
 app.post("/forgot-password", forgotPassword);
 app.post("/reset-password", resetPassword);
+// Lista agenda da empresa
 app.get("/public/:slugCompany", bookingControllers.getAllTimeSlotBySlugCompany);
+app.post("/public/booking/:slugCompany", bookingControllers.createBooking);
 
 app.use(auth);
 
