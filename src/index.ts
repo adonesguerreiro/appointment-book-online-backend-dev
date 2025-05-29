@@ -17,6 +17,8 @@ import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavali
 import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
 import * as bookingControllers from "./modules/booking/booking.controller";
 import { upload } from "./middlewares/upload";
+import { rateLimit } from "express-rate-limit";
+import helmet from "helmet";
 
 dotenv.config();
 
@@ -24,7 +26,22 @@ const app: Express = express();
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cors());
+app.use(
+	cors({
+		origin: "http://localhost:5173",
+		credentials: true,
+		methods: ["GET", "POST", "PUT", "DELETE"],
+	})
+);
+app.use(helmet());
+
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 100,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: "Too many requests, please try again later.",
+});
 
 app.get("/", (req: Request, res: Response) => {
 	const { message } = req.body;
@@ -35,12 +52,20 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // Autenticação - Login, Esqueci minha senha e Reset de senha
-app.post("/sessions", sessions);
-app.post("/forgot-password", forgotPassword);
-app.post("/reset-password", resetPassword);
+app.post("/sessions", sessions, limiter);
+app.post("/forgot-password", forgotPassword, limiter);
+app.post("/reset-password", resetPassword, limiter);
 // Lista agenda da empresa
-app.get("/public/:slugCompany", bookingControllers.getAllTimeSlotBySlugCompany);
-app.post("/public/booking/:slugCompany", bookingControllers.createBooking);
+app.get(
+	"/public/:slugCompany",
+	bookingControllers.getAllTimeSlotBySlugCompany,
+	limiter
+);
+app.post(
+	"/public/booking/:slugCompany",
+	bookingControllers.createBooking,
+	limiter
+);
 
 app.use(auth);
 
