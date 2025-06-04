@@ -26,13 +26,6 @@ export const findAllTimeSlot = async (
 		select: {
 			id: true,
 			mobile: true,
-			users: {
-				select: {
-					id: true,
-					name: true,
-					avatarUrl: true,
-				},
-			},
 			services: {
 				select: {
 					id: true,
@@ -44,6 +37,22 @@ export const findAllTimeSlot = async (
 
 	if (!company) {
 		throw new Error("Company not found");
+	}
+
+	const user = await prisma.user.findFirst({
+		where: { companyId: company.id },
+		select: {
+			id: true,
+			name: true,
+			avatarUrl: true,
+			blocked: true,
+		},
+	});
+
+	if (user?.blocked) {
+		return {
+			user: { blocked: user.blocked },
+		};
 	}
 
 	const unavaliableTime = await prisma.unavaliableTime.findMany({
@@ -91,6 +100,7 @@ export const findAllTimeSlot = async (
 	return {
 		...company,
 		avaliableTimeSlots,
+		user,
 	};
 };
 
