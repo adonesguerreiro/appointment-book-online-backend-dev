@@ -44,10 +44,11 @@ export const findCustomerByName = async (
 
 export const findCustomerByMobile = async (
 	mobile: string,
-	companyId: number
+	companyId: number,
+	id?: number
 ) => {
 	return await prisma.customer.findFirst({
-		where: { mobile, companyId, deletedAt: null },
+		where: { mobile, companyId, deletedAt: null, ...(id && { NOT: { id } }) },
 	});
 };
 

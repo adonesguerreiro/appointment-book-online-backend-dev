@@ -100,10 +100,11 @@ export const updateCustomer = async (id: number, data: CustomerData) => {
 
 		const customerExistsMobile = await customerServices.findCustomerByMobile(
 			data.mobile,
-			data.companyId
+			data.companyId,
+			id
 		);
 
-		if (customerExistsMobile) {
+		if (customerExistsMobile && customerExistsMobile.id !== id) {
 			throw new ApiError("Já existe cliente com este número de celular.", 400);
 		}
 
