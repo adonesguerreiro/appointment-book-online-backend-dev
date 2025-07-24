@@ -7,6 +7,7 @@ import * as services from "../services/services";
 import { Request, Response } from "express";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import { start } from "repl";
 
 dayjs.extend(utc);
 
@@ -71,17 +72,23 @@ export const createSchedule = async (req: Request, res: Response) => {
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
-		const unavaliableExists = await scheduleServices.findUnavaliableTimeByDate(
+		let unavaliableExists = await scheduleServices.findUnavaliableTimeByDate(
 			date,
 			Number(req.companyId)
 		);
 
-		const startOfDayDate = dayjs
-			.utc(`${date.split("T")[0]}T${unavaliableExists?.startTime}:00`)
-			.toDate();
-		const endOfDayDate = dayjs
+		let startOfDayDate =
+			dayjs
+				.utc(`${date.split("T")[0]}T${unavaliableExists?.startTime}:00`)
+				.toDate() || null;
+		let endOfDayDate = dayjs
 			.utc(`${date.split("T")[0]}T${unavaliableExists?.endTime}:00`)
 			.toDate();
+
+		if (isNaN(startOfDayDate.getTime()) || isNaN(endOfDayDate.getTime())) {
+			startOfDayDate = new Date(0);
+			endOfDayDate = new Date(0);
+		}
 
 		const existingScheduleTime =
 			await scheduleBussinessServices.getScheduleTimeUnavaliable(
