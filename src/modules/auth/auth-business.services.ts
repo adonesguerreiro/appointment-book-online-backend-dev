@@ -29,18 +29,21 @@ export const authSession = async (sessionData: SessionData) => {
 			throw new ApiError("Email ou senha incorretos", 401);
 		}
 
-		const { id, name } = userExists;
+		const { id, name, companyId } = userExists;
 
-		return {
-			existingUser: id,
+		const jwtToken = {
+			id,
 			name,
 			email,
-			token: jwt.sign({ id }, authConfig.secret, {
+			companyId,
+			token: jwt.sign({ id, companyId }, authConfig.secret, {
 				algorithm: "HS256",
 				allowInsecureKeySizes: true,
 			}),
 			expiresIn: authConfig.expiresIn,
 		};
+
+		return jwtToken;
 	} catch (err) {
 		throw err;
 	}

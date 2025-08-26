@@ -6,13 +6,9 @@ export const uploadProfilePhoto = async (req: Request, res: Response) => {
 	try {
 		const file = req.file;
 
-		if (!file) {
-			return res.status(404).send({ message: "File not uploaded" });
-		}
-
 		const uploadProfilePhoto = await uploadBusinessServices.uploadProfilePhoto(
 			Number(req.userId),
-			file,
+			file!,
 			req.body
 		);
 

@@ -11,7 +11,10 @@ interface ErrorResponse {
 }
 
 export function handleYupError(err: unknown, res: Response) {
-	if (err instanceof yup.ValidationError) {
+	if (res.headersSent) {
+		console.error("Erro após resposta já enviada:", err);
+		return;
+	} else if (err instanceof yup.ValidationError) {
 		const errorResponse: ErrorResponse = {
 			errors: err.inner.map((error) => ({
 				path: error.path,

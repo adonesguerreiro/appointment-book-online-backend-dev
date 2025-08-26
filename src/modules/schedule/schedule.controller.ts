@@ -7,7 +7,6 @@ import * as services from "../services/services";
 import { Request, Response } from "express";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { start } from "repl";
 
 dayjs.extend(utc);
 
@@ -21,12 +20,13 @@ export const getAllSchedulesByCompanyId = async (
 			100,
 			Math.max(1, parseInt(req.query.limit as string) || 10)
 		);
+		console.log("Company ID from request:", req.companyId);
 
 		const schedules =
 			await scheduleBussinessServices.getAllSchedulesByCompanyId(
 				Number(page),
 				Number(limit),
-				Number(req.companyId)
+				req.companyId
 			);
 
 		if (!schedules) {

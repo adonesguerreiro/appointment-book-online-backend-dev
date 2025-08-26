@@ -2,7 +2,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import auth from "./middlewares/auth";
-import { sessions } from "./modules/auth/auth.controller";
+import { logout, sessionMe, sessions } from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
 import * as usersControllers from "./modules/users/users.controller";
@@ -19,6 +19,7 @@ import * as bookingControllers from "./modules/booking/booking.controller";
 import { upload } from "./middlewares/upload";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -28,12 +29,13 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(
 	cors({
-		origin: "http://localhost:5173",
+		origin: process.env.FRONTEND_URL,
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "DELETE"],
 	})
 );
 app.use(helmet());
+app.use(cookieParser());
 
 const limiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
@@ -52,7 +54,9 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // Autenticação - Login, Esqueci minha senha e Reset de senha
+
 app.post("/sessions", sessions, limiter);
+
 app.post("/forgot-password", forgotPassword, limiter);
 app.post("/reset-password", resetPassword, limiter);
 // Lista agenda da empresa
@@ -69,6 +73,10 @@ app.post(
 
 app.use(auth);
 
+app.get("/session-me", sessionMe);
+app.get("/logout", logout);
+
+// Usuário
 app.get("/users", usersControllers.getAllUsers);
 app.get("/users/id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
@@ -119,7 +127,7 @@ app.put("/services/:id", servicesControllers.updateService);
 app.delete("/services/:id", servicesControllers.deleteService);
 
 //Agenda
-app.get("/schedules", schedulesControllers.getAllSchedulesByCompanyId);
+app.get("/schedules", auth, schedulesControllers.getAllSchedulesByCompanyId);
 app.get("/schedules/:id", schedulesControllers.getScheduleById);
 app.post("/schedules", schedulesControllers.createSchedule);
 app.put("/schedules/:id", schedulesControllers.updateSchedule);

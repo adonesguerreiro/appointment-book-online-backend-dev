@@ -1,20 +1,18 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { authConfig } from "../config/auth";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 interface TokenPayload {
 	id: string;
 	iat: number;
 	exp: number;
+	companyId: number;
 }
 
 declare module "express-serve-static-core" {
 	interface Request {
-		userId?: string;
-		companyId?: number;
+		userId: string;
+		companyId: number;
 	}
 }
 
@@ -27,36 +25,28 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 		return next();
 	}
 
-	const authHeader = req.headers.authorization;
+	const token = req.cookies.token;
 
-	if (!authHeader) {
+	if (!token) {
 		return res.status(401).json({ error: "Token was not provided." });
 	}
 
-	const [, token] = authHeader.split(" ");
-
 	try {
 		const decoded = await new Promise<TokenPayload>((resolve, reject) => {
-			jwt.verify(token, authConfig.secret as string, (err, decoded) => {
-				if (err) {
-					return reject(err);
+			jwt.verify(
+				token,
+				authConfig.secret as string,
+				(err: any, decoded: any) => {
+					if (err) {
+						return reject(err);
+					}
+					resolve(decoded);
 				}
-				resolve(decoded as TokenPayload);
-			});
+			);
 		});
 
 		req.userId = decoded.id;
-
-		const user = await prisma.user.findUnique({
-			where: { id: Number(req.userId) },
-			select: { companyId: true },
-		});
-
-		if (user && user.companyId) {
-			req.companyId = user.companyId;
-		} else {
-			return res.status(401).json({ error: "User not found." });
-		}
+		req.companyId = decoded.companyId;
 
 		return next();
 	} catch (error) {
