@@ -1,34 +1,24 @@
+# Usa a imagem base do Node.js 20
+FROM node:20
 
-# Etapa 1: Build da aplicação
-FROM node:20.16.0-slim AS builder
-
+# Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copia apenas os arquivos necessários para instalar as dependências
+# Copia os arquivos de dependência primeiro (melhora o cache)
 COPY package*.json ./
 
-# Instala todas as dependências (incluindo as de desenvolvimento)
+# Instala as dependências
 RUN npm install
 
 # Copia o restante do código da aplicação
 COPY . .
 
-# Gera os Prisma Client (se estiver usando Prisma)
-RUN npx prisma generate
-
-# Etapa 2: Imagem final para produção
-FROM node:20.16.0-slim AS production
-
-WORKDIR /app
-
-# Copia apenas os arquivos necessários da etapa de build
-COPY --from=builder /app ./
-
-# Instala apenas as dependências de produção
-RUN npm install --omit=dev
-
-# Expõe a porta (caso a sua API use a 3000)
+# Exponha a porta padrão
 EXPOSE 3000
 
-# Comando padrão para iniciar a API
-CMD ["npm", "run", "start"]
+# Variáveis padrão (podem ser sobrescritas via docker-compose)
+ENV NODE_ENV=development
+ENV DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+
+# Comando padrão (pode ser sobrescrito no docker-compose)
+CMD ["npm", "run", "dev"]

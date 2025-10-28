@@ -20,7 +20,6 @@ export const getAllSchedulesByCompanyId = async (
 			100,
 			Math.max(1, parseInt(req.query.limit as string) || 10)
 		);
-		console.log("Company ID from request:", req.companyId);
 
 		const schedules =
 			await scheduleBussinessServices.getAllSchedulesByCompanyId(

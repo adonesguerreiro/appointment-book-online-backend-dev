@@ -1,4 +1,4 @@
-import { authConfig } from "../../config/auth";
+import { authConfig, refreshConfig } from "../../config/auth";
 import { SessionData } from "../../interfaces/SessionData";
 import { sessionSchema } from "../../schemas/sessionSchema";
 import { ApiError } from "../../utils/apiError";
@@ -29,12 +29,10 @@ export const authSession = async (sessionData: SessionData) => {
 			throw new ApiError("Email ou senha incorretos", 401);
 		}
 
-		const { id, name, companyId } = userExists;
+		const { id, companyId } = userExists;
 
 		const jwtToken = {
 			id,
-			name,
-			email,
 			companyId,
 			token: jwt.sign({ id, companyId }, authConfig.secret, {
 				algorithm: "HS256",
@@ -43,8 +41,43 @@ export const authSession = async (sessionData: SessionData) => {
 			expiresIn: authConfig.expiresIn,
 		};
 
-		return jwtToken;
+		const refreshToken = {
+			token: jwt.sign({ id, companyId }, refreshConfig.refreshSecret, {
+				algorithm: "HS256",
+				allowInsecureKeySizes: true,
+			}),
+			expiresIn: refreshConfig.expiresIn,
+		};
+
+		return { jwtToken, refreshToken };
 	} catch (err) {
 		throw err;
+	}
+};
+
+export const refreshSession = async (refreshToken: string) => {
+	try {
+		const decoded = jwt.verify(
+			refreshToken,
+			refreshConfig.refreshSecret
+		) as any;
+
+		const newAccessToken = {
+			id: decoded.id,
+			companyId: decoded.companyId,
+			token: jwt.sign(
+				{ id: decoded.id, companyId: decoded.companyId },
+				authConfig.secret,
+				{
+					algorithm: "HS256",
+					allowInsecureKeySizes: true,
+				}
+			),
+			expiresIn: authConfig.expiresIn,
+		};
+
+		return newAccessToken;
+	} catch (err) {
+		throw new ApiError("Refresh token inválido", 401);
 	}
 };

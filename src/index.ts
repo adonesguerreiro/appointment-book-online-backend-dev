@@ -2,7 +2,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import auth from "./middlewares/auth";
-import { logout, sessionMe, sessions } from "./modules/auth/auth.controller";
+import {
+	logout,
+	refreshToken,
+	sessionMe,
+	sessions,
+} from "./modules/auth/auth.controller";
 import { forgotPassword } from "./modules/auth/forgotPassword.controller";
 import { resetPassword } from "./modules/auth/resetPassword.controller";
 import * as usersControllers from "./modules/users/users.controller";
@@ -56,7 +61,7 @@ app.get("/", (req: Request, res: Response) => {
 // Autenticação - Login, Esqueci minha senha e Reset de senha
 
 app.post("/sessions", sessions, limiter);
-
+app.post("/refresh-token", refreshToken, limiter);
 app.post("/forgot-password", forgotPassword, limiter);
 app.post("/reset-password", resetPassword, limiter);
 // Lista agenda da empresa
@@ -74,7 +79,7 @@ app.post(
 app.use(auth);
 
 app.get("/session-me", sessionMe);
-app.get("/logout", logout);
+app.post("/logout", logout);
 
 // Usuário
 app.get("/users", usersControllers.getAllUsers);
