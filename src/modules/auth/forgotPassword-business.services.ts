@@ -1,53 +1,37 @@
-import { Recipient, EmailParams, Sender, MailerSend } from "mailersend";
 import { authConfig } from "../../config/auth";
 import * as userServices from "../users/users.services";
 import jwt from "jsonwebtoken";
-import { mailerSend, sentFrom } from "../../config/mailerSend";
+import { Resend } from "resend";
 
 export const forgotPassword = async (email: string) => {
 	try {
 		const existingUser = await userServices.findUserByEmail(email);
 		if (existingUser) {
 			const token = jwt.sign({ userId: existingUser.id }, authConfig.secret, {
-				expiresIn: "5m",
+				expiresIn: "1m",
 			});
 
-			const recipients = [
-				new Recipient(`${existingUser.email}`, `${existingUser.name}`),
-			];
+			const resend = new Resend(process.env.RESEND_API_KEY);
 
-			const personalization = [
-				{
-					email: `${existingUser.email}`,
-					data: {
-						user: {
-							name: `${recipients[0].name}`,
-							email: `${recipients[0].email}`,
-						},
-						action_url: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
-						support_url: "https://wa.me/65996731038",
-						account_name: `${existingUser.name}`,
-					},
-				},
-			];
+			const { data, error } = await resend.emails.send({
+				from: "Agenda ja <onboarding@resend.dev>",
+				to: [`${existingUser.email}`],
+				subject: "Recuperação de senha",
+				html: `<strong>Email de recuperação de senha</strong> </br> Olá ${existingUser.name}, </br> Você solicitou a recuperação de senha. </br> Por favor, clique no link abaixo para redefinir sua senha: </br>
+				<br><a href="${process.env.FRONTEND_URL}/reset-password?token=${token}">Clique aqui para redefinir sua senha</a>`,
+			});
 
-			const emailParams = new EmailParams()
-				.setFrom(sentFrom)
-				.setTo(recipients)
-				.setSubject("Subject")
-				.setTemplateId("zr6ke4n7e2mgon12")
-				.setPersonalization(personalization);
+			if (error) {
+				return console.error({ error });
+			}
 
-			await mailerSend.email.send(emailParams);
+			console.log({ data });
+
 			return {
-				message: "Email enviado com sucesso, verifique sua caixa de entrada.",
+				message:
+					"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
 			};
 		}
-
-		return {
-			message:
-				"Se esse e-mail estiver cadastrado, enviaremos um link de recuperação.",
-		};
 	} catch (err) {
 		console.log(err);
 		throw err;

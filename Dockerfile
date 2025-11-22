@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Instala as dependências
 RUN npm install
+RUN npm run db:migrate
 
 # Copia o restante do código da aplicação
 COPY . .
