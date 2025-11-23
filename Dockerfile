@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # Instala o Prisma
-RUN npx prisma generate
+RUN npm run prisma migrate
 
 # Exponha a porta padrão
 EXPOSE 3000
