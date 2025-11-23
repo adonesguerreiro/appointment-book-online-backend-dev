@@ -10,18 +10,21 @@ COPY package*.json ./
 # Instala as dependências
 RUN npm install
 
+# Copia o Prisma schema
+COPY prisma ./prisma/
+
+# Gera o Prisma Client
+RUN npx prisma generate
+
 # Copia o restante do código da aplicação
 COPY . .
 
-# Instala o Prisma
-RUN npx prisma generate
+# Cria o script de entrada
+RUN echo '#!/bin/sh\nset -e\necho "🔄 Rodando migrations..."\nnpx prisma migrate deploy\necho "✅ Migrations OK!"\necho "🚀 Iniciando app..."\nexec "$@"' > /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
 # Exponha a porta padrão
 EXPOSE 3000
 
-# # Variáveis padrão (podem ser sobrescritas via docker-compose)
-# ENV NODE_ENV=development
-# ENV DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
-
-# Comando padrão (pode ser sobrescrito no docker-compose)
+# Script de entrada + comando
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]
