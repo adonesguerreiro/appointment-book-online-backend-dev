@@ -16,9 +16,6 @@ COPY . .
 # Instala o Prisma
 RUN npx prisma generate
 
-# Executa as migrations
-RUN npx prisma migrate deploy
-
 # Exponha a porta padrão
 EXPOSE 3000
 
