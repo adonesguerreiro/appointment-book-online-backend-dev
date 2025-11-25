@@ -3,8 +3,6 @@ set -e
 
 echo "🔄 Rodando Prisma migrations..."
 npx prisma migrate deploy
-
-
 echo "✅ Migrations concluídas!"
 echo "🔄 Rodando seed script..."
 npx prisma db seed
