@@ -5,6 +5,8 @@ import slugify from "slugify";
 const prisma = new PrismaClient();
 
 async function main() {
+	await prisma.$connect();
+	
 	const companyCreated = await prisma.company.upsert({
 		where: {
 			slugCompany: slugify("Adtha Software", { lower: true, strict: true }),
@@ -47,8 +49,6 @@ async function main() {
 			companyId: companyCreated.id,
 		},
 	});
-
-	console.log("Seed de desenvolvimento executado com sucesso!");
 }
 
 main()

@@ -22,6 +22,7 @@ COPY . .
 # Cria o script de entrada
 RUN echo '#!/bin/sh\nset -e\necho "🔄 Rodando migrations..."\nnpx prisma migrate deploy\necho "✅ Migrations OK!"\necho "🚀 Iniciando app..."\nexec "$@"' > /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
+
 # Exponha a porta padrão
 EXPOSE 3000
 
