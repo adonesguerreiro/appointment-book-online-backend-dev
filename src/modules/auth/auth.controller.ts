@@ -48,7 +48,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 		const session = await authBusinessServices.refreshSession(refreshToken);
 
 		res.cookie("token", session.token, {
-			httpOnly: true,
+			httpOnly: false,
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "strict",
 			maxAge: 60 * 60 * 1000,
