@@ -48,10 +48,11 @@ export const refreshToken = async (req: Request, res: Response) => {
 		const session = await authBusinessServices.refreshSession(refreshToken);
 
 		res.cookie("token", session.token, {
-			httpOnly: false,
+			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
-			sameSite: "strict",
+			sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 			maxAge: 60 * 60 * 1000,
+			domain: process.env.NODE_ENV === "production" ? ".up.railway.app" : undefined,
 		});
 		return res.status(200).json({ message: "Token refreshed successfully." });
 	} catch (error: any) {
