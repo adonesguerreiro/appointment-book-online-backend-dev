@@ -1,4 +1,4 @@
-import { DayWeek } from "@prisma/client";
+import { DayWeek } from "../../../prisma/generated/client/client";
 import { prisma } from "../../config/prisma";
 
 export const countAllTimeSlotByCompanyId = async (companyId: number) => {

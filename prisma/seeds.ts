@@ -1,12 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../src/config/prisma";
 import bcrypt from "bcrypt";
 import slugify from "slugify";
 
-const prisma = new PrismaClient();
-
 async function main() {
 	await prisma.$connect();
-	
+
 	const companyCreated = await prisma.company.upsert({
 		where: {
 			slugCompany: slugify("Adtha Software", { lower: true, strict: true }),

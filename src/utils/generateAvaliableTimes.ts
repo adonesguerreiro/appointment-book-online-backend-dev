@@ -1,6 +1,4 @@
-import { DayWeek, PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../config/prisma";
 
 export async function generateAvaliableTimes(
 	startTime: string,
@@ -23,7 +21,7 @@ export async function generateAvaliableTimes(
 	});
 
 	const existingTimeStrings = new Set(
-		existingAvailableTimeSlot.map((slot) => slot.timeSlot)
+		existingAvailableTimeSlot.map((slot) => slot.timeSlot as string)
 	);
 
 	while (currentTime <= endTimeDate) {

@@ -1,4 +1,4 @@
-import { AvaliableTimeSlot, DayWeek, Period } from "@prisma/client";
+import { DayWeek, Period } from "../../../prisma/generated/client/client";
 import { prisma } from "../../config/prisma";
 import { AvailableTimeData } from "../../interfaces/AvailableTimeData";
 

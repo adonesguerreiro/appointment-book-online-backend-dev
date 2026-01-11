@@ -1,4 +1,4 @@
-import { DayWeek } from "@prisma/client";
+import { DayWeek } from "../../../prisma/generated/client/client";
 import { ApiError } from "../../utils/apiError";
 import * as bookingService from "./booking.services";
 import dayjs from "dayjs";

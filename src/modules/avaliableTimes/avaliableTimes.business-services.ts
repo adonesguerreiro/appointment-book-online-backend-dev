@@ -1,4 +1,4 @@
-import { DayWeek } from "@prisma/client";
+import { DayWeek } from "../../../prisma/generated/client/client";
 import { ApiError } from "../../utils/apiError";
 import * as avaliableTimesServices from "./avaliableTimes.services";
 import { dateConvertDay } from "../../utils/dateConvertDay";

@@ -1,4 +1,4 @@
-import { ScheduleStatus } from "@prisma/client";
+import { ScheduleStatus } from "../../../prisma/generated/client/client";
 import { prisma } from "../../config/prisma";
 import { ScheduleData } from "../../interfaces/ScheduleData";
 

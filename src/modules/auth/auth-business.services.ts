@@ -74,6 +74,7 @@ export const refreshSession = async (refreshToken: string) => {
 				}
 			),
 			expiresIn: authConfig.expiresIn,
+			refreshToken: refreshToken,
 		};
 
 		return newAccessToken;

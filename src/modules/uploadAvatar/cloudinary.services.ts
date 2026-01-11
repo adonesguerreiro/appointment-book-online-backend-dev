@@ -6,7 +6,7 @@ export const uploadToCloudinary = async (
 	return new Promise((resolve, reject) => {
 		const stream = cloudinary.uploader.upload_stream(
 			{
-				folder: "profilePhotoUsers",
+				folder: process.env.CLOUD_FOLDER_NAME,
 				overwrite: true,
 				format: "webp",
 			},
