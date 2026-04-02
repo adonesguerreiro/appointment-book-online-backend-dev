@@ -13,14 +13,13 @@ export const getAllTimeSlotByCompanyId = async (
 	startTimeDate: Date,
 	endTimeDate: Date,
 	page: number,
-	limit: number
+	limit: number,
 ) => {
 	try {
 		const skip = (page - 1) * limit;
 
-		const totalItems = await bookingService.countAllTimeSlotByCompanyId(
-			companyId
-		);
+		const totalItems =
+			await bookingService.countAllTimeSlotByCompanyId(companyId);
 
 		const totalPages = Math.ceil(totalItems / limit);
 
@@ -28,9 +27,8 @@ export const getAllTimeSlotByCompanyId = async (
 			throw new ApiError("Página não encontrada", 404);
 		}
 
-		const slugCompanyExists = await bookingService.findSlugCompanyByName(
-			slugCompany
-		);
+		const slugCompanyExists =
+			await bookingService.findSlugCompanyByName(slugCompany);
 
 		if (!slugCompanyExists) {
 			throw new ApiError("Slug company not found", 404);
@@ -48,7 +46,7 @@ export const getAllTimeSlotByCompanyId = async (
 				endTimeDate,
 				day,
 				skip,
-				limit
+				limit,
 			);
 		}
 
@@ -67,7 +65,7 @@ export const createBooking = async (data: ScheduleData) => {
 		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
 			data.date,
 			data.status,
-			data.companyId
+			data.companyId,
 		);
 
 		if (scheduleExists) {

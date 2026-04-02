@@ -11,7 +11,7 @@ export const countAllAvaliableTimesByCompanyId = async (companyId: number) => {
 export const findAllAvaliableTimesByCompanyId = async (
 	companyId: number,
 	skip: number,
-	limit: number
+	limit: number,
 ) => {
 	return await prisma.avaliableTime.findMany({
 		where: { companyId, deletedAt: null },
@@ -31,12 +31,12 @@ export const findAvaliableTimesByDayAndCompanyId = async (
 	companyId: number,
 	day: DayWeek,
 	skip: number,
-	limit: number
+	limit: number,
 ) => {
 	return await prisma.avaliableTime.findMany({
 		where: {
 			companyId,
-			...(day && { day: day as DayWeek }),
+			day: day as DayWeek,
 			deletedAt: null,
 		},
 		include: {
@@ -54,7 +54,7 @@ export const findAvaliableTimesByDayAndCompanyId = async (
 export const findAvaliableTimeByDayAndPeriod = async (
 	day: DayWeek,
 	period: Period,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.avaliableTime.findFirst({
 		where: {
@@ -69,7 +69,7 @@ export const findAvaliableTimeByDayAndPeriod = async (
 export const findAvaliableTimeDeleted = async (
 	day: DayWeek,
 	period: Period,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.avaliableTime.findFirst({
 		where: {
@@ -86,7 +86,7 @@ export const findAvaliableTimeDeleted = async (
 export const findAvaliableTimeBySchedule = async (
 	companyId: number,
 	startTime: string,
-	endTime: string
+	endTime: string,
 ) => {
 	return await prisma.$queryRaw`
   SELECT *
@@ -112,7 +112,7 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 
 export const updateAvaliableTime = async (
 	id: number,
-	data: AvailableTimeData
+	data: AvailableTimeData,
 ) => {
 	return await prisma.avaliableTime.update({
 		where: { id },
@@ -123,7 +123,7 @@ export const updateAvaliableTime = async (
 export const createOrUpdateAvaliableTimeSlot = async (
 	avaliableTimeSlot: string[],
 	avaliableCreated: any,
-	companyId: number
+	companyId: number,
 ) => {
 	for (const time of avaliableTimeSlot) {
 		await prisma.avaliableTimeSlot.upsert({

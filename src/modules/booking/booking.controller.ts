@@ -2,20 +2,20 @@ import { Request, Response } from "express";
 import * as bookingBusinessService from "./booking.business-service";
 import * as bookingServices from "./booking.services";
 import * as customerServices from "../customer/customer.services";
-import * as servicesBussinessServices from "../services/services-bussiness.services";
+import * as servicesBussinessServices from "../services/services-business.services";
 import dayjs from "dayjs";
 import * as scheduleBussinessServices from "../schedule/schedule.business-services";
 import { bookAppointmentSchema } from "../../schemas/bookAppointmentSchema";
 
 export const getAllTimeSlotBySlugCompany = async (
 	req: Request,
-	res: Response
+	res: Response,
 ) => {
 	try {
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(
 			100,
-			Math.max(1, parseInt(req.query.limit as string) || 10)
+			Math.max(1, parseInt(req.query.limit as string) || 10),
 		);
 
 		const { slugCompany } = req.params;
@@ -38,9 +38,8 @@ export const getAllTimeSlotBySlugCompany = async (
 			.endOf("day")
 			.toDate();
 
-		const findCompanyBySlug = await bookingServices.findSlugCompanyByName(
-			slugCompany
-		);
+		const findCompanyBySlug =
+			await bookingServices.findSlugCompanyByName(slugCompany);
 
 		if (!findCompanyBySlug) {
 			return res.status(404).send({ message: "Company not found" });
@@ -53,7 +52,7 @@ export const getAllTimeSlotBySlugCompany = async (
 			startTimeDate,
 			endTimeDate,
 			page,
-			limit
+			limit,
 		);
 
 		res.send(timeSlot);
@@ -74,9 +73,8 @@ export const createBooking = async (req: Request, res: Response) => {
 			return res.status(404).send({ message: "Date is not found" });
 		}
 
-		const companyBySlug = await bookingServices.findSlugCompanyByName(
-			slugCompany
-		);
+		const companyBySlug =
+			await bookingServices.findSlugCompanyByName(slugCompany);
 
 		if (!companyBySlug) {
 			return res.status(404).send({ message: "Company not found" });
@@ -84,7 +82,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
 		const customerExists = await customerServices.findCustomerByMobile(
 			customerPhone,
-			Number(companyBySlug.id)
+			Number(companyBySlug.id),
 		);
 
 		let customerCreated = null;
@@ -104,7 +102,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
 		const serviceExists = await servicesBussinessServices.getServiceById(
 			Number(serviceId),
-			Number(companyBySlug.id)
+			Number(companyBySlug.id),
 		);
 
 		if (!serviceExists) {
@@ -114,7 +112,7 @@ export const createBooking = async (req: Request, res: Response) => {
 		const timeSlotExists =
 			await scheduleBussinessServices.getTimeSlotByCompanyId(
 				time,
-				Number(companyBySlug.id)
+				Number(companyBySlug.id),
 			);
 
 		if (!timeSlotExists) {

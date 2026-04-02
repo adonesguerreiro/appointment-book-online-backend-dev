@@ -5,14 +5,14 @@ import * as unavaliableTimesServices from "./unavaliableTimes.services";
 export const getAllUnavaliableTimesByCompany = async (
 	page: number,
 	limit: number,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const skip = (page - 1) * limit;
 
 		const totalItems =
 			await unavaliableTimesServices.countAllUnavaliableTimesByCompanyId(
-				companyId
+				companyId,
 			);
 
 		const totalPages = Math.ceil(totalItems / limit);
@@ -25,7 +25,7 @@ export const getAllUnavaliableTimesByCompany = async (
 			await unavaliableTimesServices.findAllAvaliableTimesByCompanyId(
 				companyId,
 				skip,
-				limit
+				limit,
 			);
 
 		if (!unavaliableTimes) {
@@ -56,7 +56,7 @@ export const createUnavaliableTime = async (data: UnavaliableData) => {
 		const existingDate =
 			await unavaliableTimesServices.findUnavaliableTimeByDate(
 				data.date,
-				data.companyId
+				data.companyId,
 			);
 
 		if (existingDate) {
@@ -71,7 +71,7 @@ export const createUnavaliableTime = async (data: UnavaliableData) => {
 			await unavaliableTimesServices.findUnavaliableTimeByTime(
 				startOfDayDate,
 				endOfDayDate,
-				data.companyId
+				data.companyId,
 			);
 
 		if (existingSchedule != null) {
@@ -81,7 +81,7 @@ export const createUnavaliableTime = async (data: UnavaliableData) => {
 		const existingDateDeleted =
 			await unavaliableTimesServices.findUnavaliableTimeDeleted(
 				data.date,
-				data.companyId
+				data.companyId,
 			);
 
 		if (existingDateDeleted) {
@@ -89,7 +89,7 @@ export const createUnavaliableTime = async (data: UnavaliableData) => {
 			const unavaliableTimeUpdated =
 				await unavaliableTimesServices.updateUnavaliableTime(
 					existingDateDeleted.id,
-					data
+					data,
 				);
 
 			return unavaliableTimeUpdated;
@@ -106,13 +106,13 @@ export const createUnavaliableTime = async (data: UnavaliableData) => {
 
 export const updateUnavaliableTime = async (
 	id: number,
-	data: UnavaliableData
+	data: UnavaliableData,
 ) => {
 	try {
 		const existingUnavaliableTime =
 			await unavaliableTimesServices.findUnavaliableTimeById(
 				id,
-				data.companyId
+				data.companyId,
 			);
 
 		if (!existingUnavaliableTime) {
@@ -121,7 +121,7 @@ export const updateUnavaliableTime = async (
 		const existingDate =
 			await unavaliableTimesServices.findUnavaliableTimeByDate(
 				data.date,
-				data.companyId
+				data.companyId,
 			);
 
 		if (existingDate) {
@@ -136,7 +136,7 @@ export const updateUnavaliableTime = async (
 			await unavaliableTimesServices.findUnavaliableTimeByTime(
 				startOfDayDate,
 				endOfDayDate,
-				data.companyId
+				data.companyId,
 			);
 
 		if (existingSchedule != null) {

@@ -9,7 +9,7 @@ export const getAllAvaliableTimesByCompany = async (
 	page: number,
 	limit: number,
 	companyId: number,
-	date: string
+	date: string,
 ) => {
 	try {
 		const skip = (page - 1) * limit;
@@ -34,23 +34,21 @@ export const getAllAvaliableTimesByCompany = async (
 					companyId,
 					day,
 					skip,
-					limit
+					limit,
 				);
 
 			if (!avaliableTimes) {
 				throw new Error("AvaliableTimes not found");
 			}
 
-			return {
-				avaliableTimes,
-			};
+			return avaliableTimes;
 		}
 
 		avaliableTimes =
 			await avaliableTimesServices.findAllAvaliableTimesByCompanyId(
 				companyId,
 				skip,
-				limit
+				limit,
 			);
 
 		if (!avaliableTimes) {
@@ -67,7 +65,7 @@ export const getAvaliableTimeById = async (id: number, companyId: number) => {
 	try {
 		const avaliableTime = await avaliableTimesServices.findAvaliableTimeById(
 			id,
-			companyId
+			companyId,
 		);
 		if (!avaliableTime) {
 			throw new Error("AvaliableTime not found");
@@ -84,7 +82,7 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 			await avaliableTimesServices.findAvaliableTimeByDayAndPeriod(
 				data.day,
 				data.period,
-				data.companyId
+				data.companyId,
 			);
 
 		if (avaliableTimeExists) {
@@ -95,7 +93,7 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 			await avaliableTimesServices.findAvaliableTimeDeleted(
 				data.day,
 				data.period,
-				data.companyId
+				data.companyId,
 			);
 
 		if (avaliableTimesDeleted) {
@@ -103,7 +101,7 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 			const avaliableTimeUpdated =
 				await avaliableTimesServices.updateAvaliableTime(
 					avaliableTimesDeleted.id,
-					data
+					data,
 				);
 
 			return avaliableTimeUpdated;
@@ -116,14 +114,14 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 			data.startTime,
 			data.endTime,
 			data.interval,
-			data.companyId
+			data.companyId,
 		);
 
 		const timeSlotCreated =
 			await avaliableTimesServices.createOrUpdateAvaliableTimeSlot(
 				avaliableTimeSlotCreated,
 				avaliableTimeCreated,
-				data.companyId
+				data.companyId,
 			);
 
 		if (!timeSlotCreated) {
@@ -138,12 +136,12 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 
 export const updateAvaliableTime = async (
 	id: number,
-	data: AvailableTimeData
+	data: AvailableTimeData,
 ) => {
 	try {
 		const avaliableTimeId = await avaliableTimesServices.findAvaliableTimeById(
 			id,
-			data.companyId
+			data.companyId,
 		);
 
 		if (!avaliableTimeId) {
@@ -154,7 +152,7 @@ export const updateAvaliableTime = async (
 			await avaliableTimesServices.findAvaliableTimeByDayAndPeriod(
 				data.day,
 				data.period,
-				data.companyId
+				data.companyId,
 			);
 
 		if (
@@ -168,13 +166,13 @@ export const updateAvaliableTime = async (
 			(await avaliableTimesServices.findAvaliableTimeBySchedule(
 				data.companyId,
 				data.startTime,
-				data.endTime
+				data.endTime,
 			)) as Array<AvailableTimeData>;
 
 		if (avaliableTimeSchedule.length > 0) {
 			throw new ApiError(
 				"Ja existe um agendamento para este período, não é possível alterar.",
-				400
+				400,
 			);
 		}
 
@@ -185,14 +183,14 @@ export const updateAvaliableTime = async (
 			data.startTime,
 			data.endTime,
 			data.interval!,
-			data.companyId
+			data.companyId,
 		);
 
 		const timeSlotUpdated =
 			await avaliableTimesServices.createOrUpdateAvaliableTimeSlot(
 				availableTimeSlotUpdated,
 				avaliableTimeUpdated,
-				data.companyId
+				data.companyId,
 			);
 
 		if (!timeSlotUpdated) {
@@ -218,13 +216,13 @@ export const deleteAvaliableTime = async (id: number, companyId: number) => {
 			(await avaliableTimesServices.findAvaliableTimeBySchedule(
 				avaliableTimeExists.companyId,
 				avaliableTimeExists.startTime,
-				avaliableTimeExists.endTime
+				avaliableTimeExists.endTime,
 			)) as Array<AvailableTimeData>;
 
 		if (avaliableTimeSlotsSchedule.length > 0) {
 			throw new ApiError(
 				"Ja existe um agendamento para este período, não é possível excluir.",
-				400
+				400,
 			);
 		}
 

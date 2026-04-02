@@ -37,8 +37,8 @@ app.use(
 		origin: process.env.FRONTEND_URL,
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "DELETE"],
-		allowedHeaders: ["Content-Type", "Authorization"]
-	})
+		allowedHeaders: ["Content-Type", "Authorization"],
+	}),
 );
 app.use(helmet());
 app.use(cookieParser());
@@ -69,12 +69,21 @@ app.post("/reset-password", resetPassword, limiter);
 app.get(
 	"/public/:slugCompany",
 	bookingControllers.getAllTimeSlotBySlugCompany,
-	limiter
+	limiter,
 );
+
+app.get(
+	"/public/service/:slugCompany",
+	servicesControllers.getAllServicesBySlugCompany,
+	limiter,
+);
+
+app.get("/public/user/:slugCompany", usersControllers.getUserBySlugCompany, limiter);
+
 app.post(
 	"/public/booking/:slugCompany",
 	bookingControllers.createBooking,
-	limiter
+	limiter,
 );
 
 app.use(auth);
@@ -88,39 +97,30 @@ app.get("/users/id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
 app.put("/users", usersControllers.updateUser);
 
-app.get(
-	"/dashboard/month/:month/year/:year",
-	dashboardController.dashboardPerMonthAndYear
-);
 
-// Usuário
-app.get("/users", usersControllers.getAllUsers);
-app.get("/users/id", usersControllers.getUserById);
-app.post("/users", usersControllers.createUser);
-app.put("/users", usersControllers.updateUser);
 
 // Upload de imagem perfil
 app.put(
 	"/upload",
 	upload.single("avatarUrl"),
-	uploadAvatarControllers.uploadProfilePhoto
+	uploadAvatarControllers.uploadProfilePhoto,
 );
 
 // Dashboard por mês e ano
 app.get(
 	"/dashboard/month/:month/year/:year",
-	dashboardController.dashboardPerMonthAndYear
+	dashboardController.dashboardPerMonthAndYear,
 );
 
 // Empresa
 app.get("/companies", companiesControllers.getAllCompanies);
-app.get("/companies/id", companiesControllers.getCompaniesById);
+app.get("/companies/:id", companiesControllers.getCompaniesById);
 app.post("/companies", companiesControllers.createCompany);
 app.put("/companies", companiesControllers.updateCompany);
 
 //Endereço
 app.get("/addresses", addressesControllers.getAllAddresses);
-app.get("/addresses/id", addressesControllers.getAddressById);
+app.get("/addresses/:id", addressesControllers.getAddressById);
 app.post("/addresses", addressesControllers.createAddress);
 app.put("/addresses/:id", addressesControllers.updateAddress);
 
@@ -148,36 +148,36 @@ app.delete("/customers/:id", customersControllers.deleteCustomer);
 // Horário disponível
 app.get(
 	"/avaliable-times",
-	avaliableTimesControllers.getAllAvaliableTimesByCompanyId
+	avaliableTimesControllers.getAllAvaliableTimesByCompanyId,
 );
 app.get("/avaliable-times/:id", avaliableTimesControllers.getAvaliableTimeById);
 app.post("/avaliable-times", avaliableTimesControllers.createAvaliableTime);
 app.put("/avaliable-times/:id", avaliableTimesControllers.updateAvaliableTime);
 app.delete(
 	"/avaliable-times/:id",
-	avaliableTimesControllers.deleteAvaliableTime
+	avaliableTimesControllers.deleteAvaliableTime,
 );
 
 // Horário indisponível
 app.get(
 	"/unavaliable-times",
-	unavaliableTimesControllers.getAllAvaliableTimesByCompanyId
+	unavaliableTimesControllers.getAllAvaliableTimesByCompanyId,
 );
 app.get(
 	"/unavaliable-times/:id",
-	unavaliableTimesControllers.getUnavaliableTimeById
+	unavaliableTimesControllers.getUnavaliableTimeById,
 );
 app.post(
 	"/unavaliable-times",
-	unavaliableTimesControllers.createUnavaliableTime
+	unavaliableTimesControllers.createUnavaliableTime,
 );
 app.put(
 	"/unavaliable-times/:id",
-	unavaliableTimesControllers.updateUnavaliableTime
+	unavaliableTimesControllers.updateUnavaliableTime,
 );
 app.delete(
 	"/unavaliable-times/:id",
-	unavaliableTimesControllers.deleteUnavaliableTime
+	unavaliableTimesControllers.deleteUnavaliableTime,
 );
 
 app.listen(port, () => {

@@ -6,7 +6,6 @@
 		"build": "rimraf ./build && tsc",
 		"dev": "nodemon",
 		"start": "node build/index.js",
-		"unused_dependencies": "npx depcheck",
 		"db:format": "prisma format",
 		"db:migrate": "prisma migrate dev",
 		"db:seed": "prisma db seed",

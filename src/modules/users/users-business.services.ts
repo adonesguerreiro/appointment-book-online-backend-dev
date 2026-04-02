@@ -4,6 +4,7 @@ import { ApiError } from "../../utils/apiError";
 import { hashPassword } from "../../utils/hashPassword";
 import { passwordValid } from "../../utils/passwordValid";
 import * as userServices from "./users.services";
+import * as company from "../companies/companies.services";
 
 export const getAllUsers = async (page: number, limit: number) => {
 	try {
@@ -22,6 +23,20 @@ export const getAllUsers = async (page: number, limit: number) => {
 export const getUserById = async (id: number) => {
 	try {
 		const userExists = userServices.findUserById(id);
+
+		if (!userExists) {
+			throw new Error("User not found");
+		}
+
+		return userExists;
+	} catch (err) {
+		throw err;
+	}
+};
+
+export const getUserBySlugCompany = async (slugCompany: string) => {
+	try {
+		const userExists = await company.findUserSlugCompanyByName(slugCompany);
 
 		if (!userExists) {
 			throw new Error("User not found");
@@ -72,7 +87,7 @@ export const updateUser = async (id: number, updateData: UserData) => {
 
 		const isPasswordValid = await passwordValid(
 			data.password,
-			existingUser.password
+			existingUser.password,
 		);
 
 		if (!isPasswordValid) {
@@ -81,7 +96,7 @@ export const updateUser = async (id: number, updateData: UserData) => {
 
 		const existingUserEmail = await userServices.findUserByIdAndEmail(
 			id,
-			data.email
+			data.email,
 		);
 		if (existingUserEmail) {
 			throw new ApiError("Email está em uso", 400);

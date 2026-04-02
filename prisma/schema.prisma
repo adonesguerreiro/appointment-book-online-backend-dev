@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../prisma/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(255)
+  email          String   @unique @db.VarChar(255)
+  password       String   @db.VarChar(255)
+  specialty      String?  @db.VarChar(255)
+  blocked        Boolean? @db.Boolean
+  avatarUrl      String?  @db.VarChar(255)
+  avatarPublicId String?  @db.VarChar(255)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  companyId      Int
+  company        Company? @relation(fields: [companyId], references: [id])
+}
+
+model Company {
+  id                Int                 @id @default(autoincrement())
+  name              String              @db.VarChar(255)
+  mobile            String              @unique @db.VarChar(255)
+  email             String              @unique @db.VarChar(255)
+  cnpj              String              @unique @db.VarChar(255)
+  slugCompany       String?             @unique @db.VarChar(255)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  addresses         Address?
+  avaliableTime     AvaliableTime[]
+  avaliableTimeSlot AvaliableTimeSlot[]
+  customers         Customer[]
+  schedules         Schedule[]
+  services          Service[]
+  unavailableTimes  UnavaliableTime[]
+  users             User[]
+}
+
+model Address {
+  id           Int      @id @default(autoincrement())
+  street       String   @db.VarChar(255)
+  number       String   @db.VarChar(255)
+  complement   String?  @db.VarChar(255)
+  neighborhood String   @db.VarChar(255)
+  city         String   @db.VarChar(255)
+  state        String   @db.VarChar(255)
+  postalCode   String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  companyId    Int      @unique
+  company      Company  @relation(fields: [companyId], references: [id])
+}
+
+model Service {
+  id          Int        @id @default(autoincrement())
+  duration    Int        @db.Integer
+  price       Decimal    @db.Decimal(10, 2)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  companyId   Int
+  serviceName String     @db.VarChar(255)
+  deletedAt   DateTime?
+  schedules   Schedule[]
+  company     Company    @relation(fields: [companyId], references: [id])
+}
+
+model Schedule {
+  id                Int               @id @default(autoincrement())
+  date              DateTime
+  status            ScheduleStatus    @default(SCHEDULED)
+  customerId        Int
+  serviceId         Int
+  companyId         Int
+  timeSlotId        Int
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  customerName      String
+  customerPhone     String
+  duration          String            @db.VarChar(255)
+  price             Decimal           @db.Decimal(10, 2)
+  serviceName       String            @db.VarChar(255)
+  company           Company           @relation(fields: [companyId], references: [id])
+  customer          Customer          @relation(fields: [customerId], references: [id])
+  service           Service           @relation(fields: [serviceId], references: [id])
+  avaliableTimeSlot AvaliableTimeSlot @relation(fields: [timeSlotId], references: [id])
+}
+
+model Customer {
+  id           Int        @id @default(autoincrement())
+  mobile       String     @db.VarChar(255)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  companyId    Int
+  customerName String     @db.VarChar(255)
+  deletedAt    DateTime?
+  company      Company    @relation(fields: [companyId], references: [id])
+  schedules    Schedule[]
+}
+
+model UnavaliableTime {
+  id        Int       @id @default(autoincrement())
+  date      DateTime
+  startTime String    @db.VarChar(255)
+  endTime   String    @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  companyId Int
+  company   Company   @relation(fields: [companyId], references: [id])
+}
+
+model AvaliableTime {
+  id                Int                 @id @default(autoincrement())
+  day               DayWeek?
+  startTime         String              @db.VarChar(255)
+  endTime           String              @db.VarChar(255)
+  interval          Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  companyId         Int
+  period            Period?
+  deletedAt         DateTime?
+  company           Company             @relation(fields: [companyId], references: [id])
+  avaliableTimeSlot AvaliableTimeSlot[]
+
+  @@unique([day, period])
+}
+
+model AvaliableTimeSlot {
+  id              Int           @id @default(autoincrement())
+  timeSlot        String        @db.VarChar(5)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime
+  avaliableTimeId Int
+  companyId       Int
+  avaliableTime   AvaliableTime @relation(fields: [avaliableTimeId], references: [id])
+  Company         Company       @relation(fields: [companyId], references: [id])
+  schedules       Schedule[]
+
+  @@unique([timeSlot, avaliableTimeId, companyId])
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  CANCELLED
+  ATTENDED
+}
+
+enum DayWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum Period {
+  MORNING
+  AFTERNOON
+  EVENING
+}

@@ -19,19 +19,12 @@ export const findAllTimeSlot = async (
 	endTimeDate: Date,
 	day: DayWeek,
 	skip: number,
-	limit: number
+	limit: number,
 ) => {
 	const company = await prisma.company.findFirst({
 		where: { slugCompany },
 		select: {
 			id: true,
-			mobile: true,
-			services: {
-				select: {
-					id: true,
-					serviceName: true,
-				},
-			},
 		},
 	});
 

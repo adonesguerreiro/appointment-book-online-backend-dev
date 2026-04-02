@@ -1,11 +1,12 @@
 import { ServiceData } from "../../interfaces/ServiceData";
 import { ApiError } from "../../utils/apiError";
 import * as services from "./services";
+import * as company from "../companies/companies.services";
 
 export const getAllServicesByCompanyId = async (
 	page: number,
 	limit: number,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const skip = (page - 1) * limit;
@@ -21,7 +22,44 @@ export const getAllServicesByCompanyId = async (
 		const servicesExists = await services.findAllServicesByCompany(
 			companyId,
 			skip,
-			limit
+			limit,
+		);
+
+		if (!servicesExists) {
+			throw new Error("Services not found");
+		}
+
+		return { servicesExists, totalPages };
+	} catch (err) {
+		throw err;
+	}
+};
+
+export const getAllServicesBySlugCompany = async (
+	slugCompany: string,
+	page: number,
+	limit: number,
+) => {
+	try {
+		const skip = (page - 1) * limit;
+		const companyId = await company.findSlugCompanyByName(slugCompany);
+		const totalItems = await services.countAllServicesByCompany(
+			companyId?.id || 0,
+		);
+		const totalPages = Math.ceil(totalItems / limit);
+
+		if (page > totalPages) {
+			throw new ApiError("Página não encontrada", 404);
+		}
+
+		if (!companyId) {
+			throw new Error("Company not found");
+		}
+
+		const servicesExists = await services.findAllServicesBySlugCompany(
+			slugCompany,
+			skip,
+			limit,
 		);
 
 		if (!servicesExists) {
@@ -51,7 +89,7 @@ export const createService = async (data: ServiceData) => {
 	try {
 		const serviceExists = await services.findServiceByName(
 			data.serviceName,
-			data.companyId
+			data.companyId,
 		);
 
 		let serviceCreated = null;
@@ -84,7 +122,7 @@ export const updateService = async (id: number, data: ServiceData) => {
 		const serviceNameExists = await services.findServiceByNameEdit(
 			data.serviceName,
 			data.companyId,
-			id
+			id,
 		);
 
 		if (serviceNameExists) {
@@ -106,12 +144,12 @@ export const deleteService = async (id: number, companyId: number) => {
 		if (!serviceExists) {
 			throw new Error("Service not found");
 		}
-    
+
 		const serviceInSchedule = await services.findServiceInSchedule(id);
 		if (serviceInSchedule) {
 			throw new ApiError(
 				"Serviço possui agendamentos, não é possível deletar",
-				400
+				400,
 			);
 		}
 

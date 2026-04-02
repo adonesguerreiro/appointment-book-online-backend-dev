@@ -5,13 +5,13 @@ import { handleYupError } from "../../utils/handleYupError";
 
 export const getAllAvaliableTimesByCompanyId = async (
 	req: Request,
-	res: Response
+	res: Response,
 ) => {
 	try {
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(
 			100,
-			Math.max(1, parseInt(req.query.limit as string) || 10)
+			Math.max(1, parseInt(req.query.limit as string) || 10),
 		);
 
 		const avaliableTime =
@@ -19,7 +19,7 @@ export const getAllAvaliableTimesByCompanyId = async (
 				page,
 				limit,
 				Number(req.companyId),
-				req.query.date as string
+				req.query.date as string,
 			);
 
 		if (!avaliableTime) {
@@ -37,7 +37,7 @@ export const getAvaliableTimeById = async (req: Request, res: Response) => {
 		const avaliableTime =
 			await avaliableTimesBusinessServices.getAvaliableTimeById(
 				Number(req.params.id),
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 		if (!avaliableTime) {
 			throw new Error("AvaliableTime not found");
@@ -115,7 +115,7 @@ export const deleteAvaliableTime = async (req: Request, res: Response) => {
 		const avaliableTime =
 			await avaliableTimesBusinessServices.deleteAvaliableTime(
 				Number(req.params.id),
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 		if (!avaliableTime) {
 			throw new Error("AvaliableTime not found");

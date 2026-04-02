@@ -33,6 +33,21 @@ export const getUserById = async (req: Request, res: Response) => {
 	}
 };
 
+export const getUserBySlugCompany = async (req: Request, res: Response) => {
+	try {
+		const slugCompany = req.params.slugCompany;
+		const user = await usersBussinessServices.getUserBySlugCompany(slugCompany);
+
+		if (!user) {
+			return res.status(404).send({ message: "User not found" });
+		}
+
+		res.send(user);
+	} catch (err) {
+		res.status(500).json({ error: err });
+	}
+};
+
 export const createUser = async (req: Request, res: Response) => {
 	try {
 		const { name, email, password, specialty } = req.body;

@@ -28,6 +28,14 @@ export const findUserByIdAndEmail = async (id: number, email: string) => {
 	});
 };
 
+export const findUserByCompanyId = async (companyId: number) => {
+	return await prisma.user.findFirst({
+		where: {
+			companyId,
+		},
+	});
+};
+
 export const createUser = async (data: UserData) => {
 	return await prisma.user.create({
 		data,

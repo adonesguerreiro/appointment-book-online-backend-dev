@@ -30,6 +30,8 @@ export const getCompanyById = async (id: number) => {
 	}
 };
 
+
+
 export const createCompany = async (createData: CompanyData) => {
 	try {
 		await companySchema.validate(createData, { abortEarly: false });
@@ -38,7 +40,7 @@ export const createCompany = async (createData: CompanyData) => {
 			await companiesServices.findCompanyByEmailOrCnpjOrMobile(
 				createData.email,
 				createData.cnpj,
-				createData.mobile
+				createData.mobile,
 			);
 
 		if (companyExists?.mobile === createData.mobile) {
@@ -75,7 +77,7 @@ export const updateCompany = async (id: number, updateData: CompanyData) => {
 			await companiesServices.findCompanyByEmailOrCnpjOrMobile(
 				updateData.email,
 				updateData.cnpj,
-				updateData.mobile
+				updateData.mobile,
 			);
 
 		if (companyExistsWithSameData?.mobile === updateData.mobile) {

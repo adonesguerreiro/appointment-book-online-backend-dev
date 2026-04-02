@@ -19,12 +19,34 @@ export const findCompanyById = async (id: number) => {
 export const findCompanyByEmailOrCnpjOrMobile = async (
 	email?: string,
 	cnpj?: string,
-	mobile?: string
+	mobile?: string,
 ) => {
 	return await prisma.company.findFirst({
 		where: { OR: [{ mobile }, { email }, { cnpj }] },
 	});
 };
+
+export const findSlugCompanyByName = async (slugCompany: string) => {
+	return await prisma.company.findFirst({
+		where: { slugCompany },
+	});
+};
+
+export const findUserSlugCompanyByName = async (slugCompany: string) => {
+	return await prisma.company.findFirst({
+		where: { slugCompany },
+		select: {
+			users : {
+				select: {
+					id: true,
+					name: true,
+					avatarUrl: true,
+				}
+			}
+		}
+	});
+};
+
 
 export const createCompany = async (data: CompanyData) => {
 	return await prisma.company.create({

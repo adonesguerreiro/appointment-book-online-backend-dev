@@ -11,7 +11,7 @@ export const getAllCompanies = async (req: Request, res: Response) => {
 
 		const companies = await companiesBusinessServices.getAllCompanies(
 			Number(page),
-			Number(limit)
+			Number(limit),
 		);
 		res.send(companies);
 	} catch (err) {
@@ -21,7 +21,7 @@ export const getAllCompanies = async (req: Request, res: Response) => {
 export const getCompaniesById = async (req: Request, res: Response) => {
 	try {
 		const company = await companiesBusinessServices.getCompanyById(
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		if (!company) {
@@ -69,7 +69,7 @@ export const updateCompany = async (req: CompanyRequest, res: Response) => {
 				email,
 				cnpj,
 				slugCompany: slugify(name, { lower: true, strict: true }),
-			}
+			},
 		);
 		res.send(company);
 	} catch (err) {

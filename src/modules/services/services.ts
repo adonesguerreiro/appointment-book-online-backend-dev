@@ -10,10 +10,32 @@ export const countAllServicesByCompany = async (companyId: number) => {
 export const findAllServicesByCompany = async (
 	companyId: number,
 	skip: number,
-	limit: number
+	limit: number,
 ) => {
 	return await prisma.service.findMany({
 		where: { companyId, deletedAt: null },
+		skip,
+		take: limit,
+		orderBy: { serviceName: "asc" },
+	});
+};
+
+export const findAllServicesBySlugCompany = async (
+	slugCompany: string,
+	skip: number,
+	limit: number,
+) => {
+	return await prisma.service.findMany({
+		where: {
+			company: {
+				slugCompany,
+			},
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			serviceName: true,
+		},
 		skip,
 		take: limit,
 		orderBy: { serviceName: "asc" },
@@ -34,7 +56,7 @@ export const findServiceInSchedule = async (id: number) => {
 
 export const findServiceByName = async (
 	serviceName: string,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.service.findFirst({
 		where: {
@@ -50,7 +72,7 @@ export const findServiceByName = async (
 export const findServiceByNameEdit = async (
 	serviceName: string,
 	companyId: number,
-	id: number
+	id: number,
 ) => {
 	return await prisma.service.findFirst({
 		where: {
@@ -81,5 +103,25 @@ export const deleteService = async (id: number) => {
 	return await prisma.service.update({
 		where: { id },
 		data: { deletedAt: new Date() },
+	});
+};
+
+export const findAllServicesSlugCompany = async (
+	slugCompany: string,
+	skip: number,
+	limit: number,
+) => {
+	return await prisma.service.findMany({
+		where: {
+			company: {
+				slugCompany,
+			},
+		},
+		select: {
+			id: true,
+			serviceName: true,
+		},
+		skip,
+		take: limit,
 	});
 };

@@ -1,7 +1,7 @@
 export interface ServiceData {
 	id?: number;
 	serviceName: string;
-	duration: string;
+	duration: number;
 	price: number;
 	companyId: number;
 	deletedAt?: Date | null;
