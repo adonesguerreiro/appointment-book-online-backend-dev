@@ -1,4 +1,4 @@
-import { DayWeek, Period } from "../../prisma/generated/client/enums";
+import { DayWeek, Period } from "@prisma/client";
 
 export interface AvailableTimeData {
 	id?: number;

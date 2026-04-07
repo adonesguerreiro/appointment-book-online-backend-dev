@@ -1,4 +1,4 @@
-import { DayWeek, Period } from "../../../prisma/generated/client/client";
+import { DayWeek, Period } from "@prisma/client";
 import { prisma } from "../../config/prisma";
 import { AvailableTimeData } from "../../interfaces/AvailableTimeData";
 

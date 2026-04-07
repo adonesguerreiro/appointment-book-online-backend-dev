@@ -1,4 +1,4 @@
-import { DayWeek } from "../../../prisma/generated/client/enums";
+import { DayWeek } from "@prisma/client";
 import { prisma } from "../../config/prisma";
 
 export const findTimeSlotsByDayAndCompanyId = async (

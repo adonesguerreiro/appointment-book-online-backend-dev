@@ -1,18 +1,17 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../prisma/generated/client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
   id             Int      @id @default(autoincrement())
   name           String   @db.VarChar(255)
   email          String   @unique @db.VarChar(255)
-  password       String   @db.VarChar(255)
-  specialty      String?  @db.VarChar(255)
+  password       String?   @db.VarChar(255)
   blocked        Boolean? @db.Boolean
   avatarUrl      String?  @db.VarChar(255)
   avatarPublicId String?  @db.VarChar(255)
@@ -81,7 +80,7 @@ model Schedule {
   updatedAt         DateTime          @updatedAt
   customerName      String
   customerPhone     String
-  duration          String            @db.VarChar(255)
+  duration          Int               @db.Integer
   price             Decimal           @db.Decimal(10, 2)
   serviceName       String            @db.VarChar(255)
   company           Company           @relation(fields: [companyId], references: [id])

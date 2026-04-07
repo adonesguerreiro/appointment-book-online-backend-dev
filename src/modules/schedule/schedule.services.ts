@@ -1,4 +1,4 @@
-import { ScheduleStatus } from "../../../prisma/generated/client/client";
+import { ScheduleStatus } from "@prisma/client";
 import { prisma } from "../../config/prisma";
 import { ScheduleData } from "../../interfaces/ScheduleData";
 
@@ -11,7 +11,7 @@ export const countAllSchedulesByCompanyId = async (companyId: number) => {
 export const findAllSchedulesByCompanyId = async (
 	companyId: number,
 	skip: number,
-	limit: number
+	limit: number,
 ) => {
 	return await prisma.schedule.findMany({
 		where: { companyId },
@@ -30,7 +30,7 @@ export const findScheduleById = async (id: number, companyId: number) => {
 export const findScheduleTimeUnavaliable = async (
 	startOfDayDate: Date,
 	endOfDayDate: Date,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.unavaliableTime.findFirst({
 		where: {
@@ -45,7 +45,7 @@ export const findScheduleTimeUnavaliable = async (
 
 export const findUnavaliableTimeByDate = async (
 	date: string,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.unavaliableTime.findFirst({
 		where: {
@@ -58,7 +58,7 @@ export const findUnavaliableTimeByDate = async (
 export const findScheduleByDateAndStatus = async (
 	date: string,
 	status: ScheduleStatus,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.schedule.findFirst({
 		where: {
@@ -71,7 +71,7 @@ export const findScheduleByDateAndStatus = async (
 
 export const findTimeSlotByCompanyId = async (
 	timeSlot: string,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.avaliableTimeSlot.findFirst({
 		where: {
@@ -82,7 +82,9 @@ export const findTimeSlotByCompanyId = async (
 };
 
 export const createSchedule = async (data: ScheduleData) => {
-	return await prisma.schedule.create({ data });
+	return await prisma.schedule.create({
+		data,
+	});
 };
 
 export const updateSchedule = async (id: number, data: ScheduleData) => {

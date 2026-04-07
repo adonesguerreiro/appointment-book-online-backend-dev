@@ -1,4 +1,4 @@
-import { ScheduleStatus } from "../../prisma/generated/client/enums";
+import { ScheduleStatus } from "@prisma/client";
 
 export interface ScheduleData {
 	customerId: number;
@@ -6,7 +6,7 @@ export interface ScheduleData {
 	customerPhone: string;
 	serviceId: number;
 	serviceName: string;
-	duration: string;
+	duration: number;
 	price: number;
 	date: string;
 	status: ScheduleStatus;

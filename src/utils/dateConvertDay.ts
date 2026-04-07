@@ -1,4 +1,4 @@
-import { DayWeek } from "../../prisma/generated/client/client";
+import { DayWeek } from "@prisma/client";
 
 export async function dateConvertDay(date: string) {
 	const [year, month, day] = date.split("-").map(Number);
