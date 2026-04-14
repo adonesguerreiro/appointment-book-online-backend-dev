@@ -4,7 +4,6 @@ export interface UserData {
 	password: string;
 	newPassword?: string;
 	confirmPassword?: string;
-	specialty: string;
 	companyId: number;
 	avatarUrl?: string;
 	avatarPublicId?: string;

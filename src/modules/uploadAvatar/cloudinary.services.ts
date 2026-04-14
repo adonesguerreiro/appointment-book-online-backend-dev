@@ -1,7 +1,7 @@
 import cloudinary from "../../config/cloudinary";
 
 export const uploadToCloudinary = async (
-	file: Express.Multer.File
+	file: Express.Multer.File,
 ): Promise<any> => {
 	return new Promise((resolve, reject) => {
 		const stream = cloudinary.uploader.upload_stream(
@@ -19,7 +19,7 @@ export const uploadToCloudinary = async (
 					return reject(new Error("Resultado de upload vazio"));
 				}
 				resolve(result);
-			}
+			},
 		);
 
 		stream.end(file.buffer);

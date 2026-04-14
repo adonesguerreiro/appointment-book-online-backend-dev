@@ -5,25 +5,24 @@ import * as scheduleServices from "./schedule.services";
 export const getAllSchedulesByCompanyId = async (
 	page: number,
 	limit: number,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const skip = (page - 1) * limit;
 
-		const totalItems = await scheduleServices.countAllSchedulesByCompanyId(
-			companyId
-		);
+		const totalItems =
+			await scheduleServices.countAllSchedulesByCompanyId(companyId);
 
 		const totalPages = Math.ceil(totalItems / limit);
 
-		if (page > totalPages) {
+		if (page > totalPages && totalPages !== 0) {
 			throw new ApiError("Página não encontrada", 404);
 		}
 
 		const schedulesExists = await scheduleServices.findAllSchedulesByCompanyId(
 			companyId,
 			skip,
-			limit
+			limit,
 		);
 
 		if (!schedulesExists) {
@@ -40,7 +39,7 @@ export const getScheduleById = async (id: number, companyId: number) => {
 	try {
 		const scheduleExists = await scheduleServices.findScheduleById(
 			id,
-			companyId
+			companyId,
 		);
 		if (!scheduleExists) {
 			throw new Error("Schedule not found");
@@ -55,20 +54,20 @@ export const getScheduleById = async (id: number, companyId: number) => {
 export const getScheduleTimeUnavaliable = async (
 	startOfDayDate: Date,
 	endOfDayDate: Date,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const existingScheduleTime =
 			await scheduleServices.findScheduleTimeUnavaliable(
 				startOfDayDate,
 				endOfDayDate,
-				companyId
+				companyId,
 			);
 
 		if (existingScheduleTime) {
 			throw new ApiError(
 				"Já existe horário indisponível para este período, não será possível agendar.",
-				400
+				400,
 			);
 		}
 
@@ -80,12 +79,12 @@ export const getScheduleTimeUnavaliable = async (
 
 export const getTimeSlotByCompanyId = async (
 	timeSlot: string,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const existingTimeSlot = await scheduleServices.findTimeSlotByCompanyId(
 			timeSlot,
-			companyId
+			companyId,
 		);
 
 		if (!existingTimeSlot) {
@@ -103,7 +102,7 @@ export const createSchedule = async (data: ScheduleData) => {
 		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
 			data.date,
 			data.status,
-			data.companyId
+			data.companyId,
 		);
 
 		if (scheduleExists) {
@@ -123,7 +122,7 @@ export const updateSchedule = async (id: number, data: ScheduleData) => {
 		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
 			data.date,
 			data.status,
-			data.companyId
+			data.companyId,
 		);
 
 		if (scheduleExists) {

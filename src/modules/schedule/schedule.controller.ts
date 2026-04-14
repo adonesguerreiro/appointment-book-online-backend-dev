@@ -12,20 +12,20 @@ dayjs.extend(utc);
 
 export const getAllSchedulesByCompanyId = async (
 	req: Request,
-	res: Response
+	res: Response,
 ) => {
 	try {
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(
 			100,
-			Math.max(1, parseInt(req.query.limit as string) || 10)
+			Math.max(1, parseInt(req.query.limit as string) || 10),
 		);
 
 		const schedules =
 			await scheduleBussinessServices.getAllSchedulesByCompanyId(
 				Number(page),
 				Number(limit),
-				req.companyId
+				req.companyId,
 			);
 
 		if (!schedules) {
@@ -49,7 +49,7 @@ export const getScheduleById = async (req: Request, res: Response) => {
 	try {
 		const schedule = await scheduleBussinessServices.getScheduleById(
 			Number(req.params.id),
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		if (!schedule) {
@@ -73,7 +73,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 
 		let unavaliableExists = await scheduleServices.findUnavaliableTimeByDate(
 			date,
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		let startOfDayDate =
@@ -93,7 +93,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 			await scheduleBussinessServices.getScheduleTimeUnavaliable(
 				startOfDayDate,
 				endOfDayDate,
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 
 		if (existingScheduleTime) {
@@ -105,7 +105,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 
 		const customerIdExists = await customerServices.findCustomerById(
 			Number(customerId),
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		if (!customerIdExists) {
@@ -116,7 +116,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 
 		const serviceIdExists = await services.findServiceById(
 			Number(serviceId),
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		if (!serviceIdExists) {
@@ -128,7 +128,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 		const timeSlotIdExists =
 			await scheduleBussinessServices.getTimeSlotByCompanyId(
 				timeSlotAvaliable,
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 
 		if (!timeSlotIdExists) {
@@ -176,7 +176,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 			await scheduleBussinessServices.getScheduleTimeUnavaliable(
 				new Date(startOfDayDate),
 				new Date(endOfDayDate),
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 
 		if (existingScheduleTime) {
@@ -188,7 +188,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 
 		const customerIdExists = await customerServices.findCustomerById(
 			Number(customerId),
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		if (!customerIdExists) {
@@ -199,7 +199,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 
 		const serviceIdExists = await services.findServiceById(
 			Number(serviceId),
-			Number(req.companyId)
+			Number(req.companyId),
 		);
 
 		if (!serviceIdExists) {
@@ -211,7 +211,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 		const timeSlotIdExists =
 			await scheduleBussinessServices.getTimeSlotByCompanyId(
 				timeSlotAvaliable,
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 
 		if (!timeSlotIdExists) {
@@ -236,7 +236,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 				date: formattedDate,
 				status,
 				companyId: Number(req.companyId),
-			}
+			},
 		);
 
 		res.send(scheduleUpdated);

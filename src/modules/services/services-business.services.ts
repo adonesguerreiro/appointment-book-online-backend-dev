@@ -15,7 +15,7 @@ export const getAllServicesByCompanyId = async (
 
 		const totalPages = Math.ceil(totalItems / limit);
 
-		if (page > totalPages) {
+		if (page > totalPages && totalPages !== 0) {
 			throw new ApiError("Página não encontrada", 404);
 		}
 
@@ -48,7 +48,7 @@ export const getAllServicesBySlugCompany = async (
 		);
 		const totalPages = Math.ceil(totalItems / limit);
 
-		if (page > totalPages) {
+		if (page > totalPages && totalPages !== 0) {
 			throw new ApiError("Página não encontrada", 404);
 		}
 

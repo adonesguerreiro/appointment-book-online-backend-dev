@@ -43,7 +43,6 @@ async function main() {
 			name: "Adones Lori",
 			email: "adoneslori@gmail.com",
 			password: passwordHash,
-			specialty: "Desenvolvedor",
 			companyId: companyCreated.id,
 		},
 	});

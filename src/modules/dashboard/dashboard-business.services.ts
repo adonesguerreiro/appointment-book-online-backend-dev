@@ -3,13 +3,13 @@ import * as dashboardServices from "./dashboard-services";
 export const dashboardPerMonthAndYear = async (
 	month: string,
 	year: string,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const dashboard = await dashboardServices.getAllAppointmentsPerMonthAndYear(
 			month,
 			year,
-			companyId
+			companyId,
 		);
 
 		return dashboard;

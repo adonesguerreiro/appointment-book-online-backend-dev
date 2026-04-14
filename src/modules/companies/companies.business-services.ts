@@ -30,8 +30,6 @@ export const getCompanyById = async (id: number) => {
 	}
 };
 
-
-
 export const createCompany = async (createData: CompanyData) => {
 	try {
 		await companySchema.validate(createData, { abortEarly: false });

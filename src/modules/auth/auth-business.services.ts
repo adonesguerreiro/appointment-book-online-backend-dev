@@ -1,3 +1,4 @@
+import { Resend } from "resend";
 import { authConfig, refreshConfig } from "../../config/auth";
 import { SessionData } from "../../interfaces/SessionData";
 import { sessionSchema } from "../../schemas/sessionSchema";
@@ -20,8 +21,12 @@ export const authSession = async (sessionData: SessionData) => {
 		if (userExists.blocked === true) {
 			throw new ApiError(
 				"Usuário está sem acesso, entre em contato com o suporte.",
-				401
+				401,
 			);
+		}
+
+		if (!userExists.password) {
+			throw new ApiError("Senha é obrigatória", 400);
 		}
 
 		const isPasswordValid = await passwordValid(password, userExists.password);
@@ -59,7 +64,7 @@ export const refreshSession = async (refreshToken: string) => {
 	try {
 		const decoded = jwt.verify(
 			refreshToken,
-			refreshConfig.refreshSecret
+			refreshConfig.refreshSecret,
 		) as any;
 
 		const newAccessToken = {
@@ -71,7 +76,7 @@ export const refreshSession = async (refreshToken: string) => {
 				{
 					algorithm: "HS256",
 					allowInsecureKeySizes: true,
-				}
+				},
 			),
 			expiresIn: authConfig.expiresIn,
 			refreshToken: refreshToken,
@@ -80,5 +85,29 @@ export const refreshSession = async (refreshToken: string) => {
 		return newAccessToken;
 	} catch (err) {
 		throw new ApiError("Refresh token inválido", 401);
+	}
+};
+
+export const createPassword = async (email: string, password: string) => {
+	const resend = new Resend(process.env.RESEND_API_KEY);
+	const user = await userServices.findUserByEmail(email);
+
+	if (!user) {
+		throw new ApiError("Usuário não encontrado", 404);
+	}
+	const token = jwt.sign({ userId: user.id }, authConfig.secret, {
+		expiresIn: "15m",
+	});
+
+	const { error } = await resend.emails.send({
+		from: "Agenda ja <onboarding@resend.dev>",
+		to: [`${user.email}`],
+		subject: "Criação de senha para nova conta",
+		html: `<strong>Email de criação de senha</strong> </br> Olá ${user.name}, </br> Você criou uma nova conta na Agenda Ja. </br> Por favor, clique no link abaixo para criar sua senha: </br>
+				<br><a href="${process.env.FRONTEND_URL}/create-password?token=${token}">Clique aqui para criar sua senha</a>`,
+	});
+
+	if (error) {
+		return console.error({ error });
 	}
 };

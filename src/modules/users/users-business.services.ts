@@ -85,6 +85,14 @@ export const updateUser = async (id: number, updateData: UserData) => {
 			throw new ApiError("Usuário não encontrado", 404);
 		}
 
+		if (!existingUser.password || !data.password) {
+			throw new ApiError("Senha é obrigatória", 400);
+		}
+
+		if (!data.password) {
+			throw new ApiError("Senha é obrigatória", 400);
+		}
+
 		const isPasswordValid = await passwordValid(
 			data.password,
 			existingUser.password,

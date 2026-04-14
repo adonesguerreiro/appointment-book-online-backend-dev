@@ -78,7 +78,11 @@ app.get(
 	limiter,
 );
 
-app.get("/public/user/:slugCompany", usersControllers.getUserBySlugCompany, limiter);
+app.get(
+	"/public/user/:slugCompany",
+	usersControllers.getUserBySlugCompany,
+	limiter,
+);
 
 app.post(
 	"/public/booking/:slugCompany",
@@ -93,11 +97,9 @@ app.post("/logout", logout);
 
 // Usuário
 app.get("/users", usersControllers.getAllUsers);
-app.get("/users/id", usersControllers.getUserById);
+app.get("/users/:id", usersControllers.getUserById);
 app.post("/users", usersControllers.createUser);
 app.put("/users", usersControllers.updateUser);
-
-
 
 // Upload de imagem perfil
 app.put(

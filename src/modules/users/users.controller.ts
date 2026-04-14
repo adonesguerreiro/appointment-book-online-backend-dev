@@ -55,9 +55,9 @@ export const createUser = async (req: Request, res: Response) => {
 			name,
 			email,
 			password,
-			specialty,
 			companyId: Number(req.companyId),
 		});
+
 		res.status(200).send(user);
 	} catch (err) {
 		const yupHandled = handleYupError(err, res);
@@ -74,7 +74,6 @@ export const updateUser = async (req: Request, res: Response) => {
 			name,
 			email,
 			password,
-			specialty,
 			companyId: Number(req.companyId),
 		});
 		res.status(200).send(user);

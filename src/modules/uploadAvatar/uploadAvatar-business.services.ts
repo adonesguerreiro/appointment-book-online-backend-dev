@@ -1,5 +1,4 @@
 import cloudinary from "../../config/cloudinary";
-import fs from "fs";
 import * as userServices from "../users/users.services";
 import * as uploadServices from "./uploadAvatar.services";
 import { UserData } from "../../interfaces/UserData";
@@ -11,7 +10,7 @@ import { hashPassword } from "../../utils/hashPassword";
 export const uploadProfilePhoto = async (
 	id: number,
 	file: Express.Multer.File,
-	data: UserData
+	data: UserData,
 ) => {
 	const userExists = await userServices.findUserById(id);
 	try {
@@ -27,7 +26,7 @@ export const uploadProfilePhoto = async (
 
 		const isPasswordValid = await passwordValid(
 			data.password,
-			userExists.password
+			userExists.password,
 		);
 
 		if (!isPasswordValid) {
