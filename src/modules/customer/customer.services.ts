@@ -16,7 +16,7 @@ export const findCustomerById = async (id: number, companyId: number) => {
 export const findAllCustomersByCompanyId = async (
 	companyId: number,
 	skip: number,
-	limit: number
+	limit: number,
 ) => {
 	return await prisma.customer.findMany({
 		where: { companyId, deletedAt: null },
@@ -28,7 +28,7 @@ export const findAllCustomersByCompanyId = async (
 
 export const findCustomerByName = async (
 	customerName: string,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.customer.findFirst({
 		where: {
@@ -37,7 +37,7 @@ export const findCustomerByName = async (
 				mode: "insensitive",
 			},
 			companyId,
-			NOT: { deletedAt: null },
+			deletedAt: null,
 		},
 	});
 };
@@ -45,7 +45,7 @@ export const findCustomerByName = async (
 export const findCustomerByMobile = async (
 	mobile: string,
 	companyId: number,
-	id?: number
+	id?: number,
 ) => {
 	return await prisma.customer.findFirst({
 		where: { mobile, companyId, deletedAt: null, ...(id && { NOT: { id } }) },
@@ -54,7 +54,7 @@ export const findCustomerByMobile = async (
 
 export const findCustomerIdBySchedule = async (
 	customerId: number,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.schedule.findFirst({
 		where: { customerId, companyId },

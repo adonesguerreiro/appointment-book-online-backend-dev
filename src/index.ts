@@ -43,12 +43,20 @@ app.use(
 app.use(helmet());
 app.use(cookieParser());
 
-const limiter = rateLimit({
+const globalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	max: 100,
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: "Too many requests, please try again later.",
+});
+
+const authLimiter = rateLimit({
+	windowMs: 60 * 1000,
+	max: 5,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: "Too many login attempts, please try again in 1 minute.",
 });
 
 app.get("/", (req: Request, res: Response) => {
@@ -61,33 +69,34 @@ app.get("/", (req: Request, res: Response) => {
 
 // Autenticação - Login, Esqueci minha senha e Reset de senha
 
-app.post("/sessions", sessions, limiter);
-app.post("/refresh-token", refreshToken, limiter);
-app.post("/forgot-password", forgotPassword, limiter);
-app.post("/reset-password", resetPassword, limiter);
+app.post("/sessions", sessions, authLimiter);
+app.post("/refresh-token", refreshToken, globalLimiter);
+app.post("/forgot-password", forgotPassword, authLimiter);
+app.post("/reset-password", resetPassword, globalLimiter);
+
 // Lista agenda da empresa
 app.get(
 	"/public/:slugCompany",
 	bookingControllers.getAllTimeSlotBySlugCompany,
-	limiter,
+	globalLimiter,
 );
 
 app.get(
 	"/public/service/:slugCompany",
 	servicesControllers.getAllServicesBySlugCompany,
-	limiter,
+	globalLimiter,
 );
 
 app.get(
 	"/public/user/:slugCompany",
 	usersControllers.getUserBySlugCompany,
-	limiter,
+	globalLimiter,
 );
 
 app.post(
 	"/public/booking/:slugCompany",
 	bookingControllers.createBooking,
-	limiter,
+	globalLimiter,
 );
 
 app.use(auth);
@@ -181,6 +190,11 @@ app.delete(
 	"/unavaliable-times/:id",
 	unavaliableTimesControllers.deleteUnavaliableTime,
 );
+
+app.use((err: any, res: express.Response) => {
+	console.error("Internal error:", err.message);
+	res.status(500).json({ error: "Internal server error" });
+});
 
 app.listen(port, () => {
 	console.log(`Server running on port ${port}`);

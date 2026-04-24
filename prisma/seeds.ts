@@ -34,7 +34,7 @@ async function main() {
 		},
 	});
 
-	const password = "75315968";
+	const password = "Sanbox@123";
 	const passwordHash = await bcrypt.hash(password, 10);
 	await prisma.user.upsert({
 		where: { email: "adoneslori@gmail.com" },

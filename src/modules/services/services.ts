@@ -65,6 +65,7 @@ export const findServiceByName = async (
 				mode: "insensitive",
 			},
 			companyId,
+			deletedAt: null,
 		},
 	});
 };
@@ -81,6 +82,7 @@ export const findServiceByNameEdit = async (
 				mode: "insensitive",
 			},
 			companyId,
+			deletedAt: null,
 			NOT: {
 				id,
 			},

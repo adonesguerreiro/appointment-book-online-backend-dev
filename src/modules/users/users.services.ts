@@ -8,14 +8,14 @@ export const findAllUsers = async (skip: number, limit: number) => {
 };
 
 export const findUserById = async (id: number) => {
-	return await prisma.user.findUnique({
-		where: { id },
+	return await prisma.user.findFirst({
+		where: { id, deletedAt: null },
 	});
 };
 
 export const findUserByEmail = async (email: string) => {
-	return await prisma.user.findUnique({
-		where: { email },
+	return await prisma.user.findFirst({
+		where: { email, deletedAt: null },
 	});
 };
 

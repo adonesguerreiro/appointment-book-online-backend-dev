@@ -22,10 +22,14 @@ export const uploadProfilePhoto = async (
 			await cloudinary.uploader.destroy(userExists.avatarPublicId!);
 		}
 
+		if (!userExists.password) {
+			throw new ApiError("Usuário precisa criar senha primeiro", 400);
+		}
+
 		const cloudinaryResponse = await uploadToCloudinary(file!);
 
 		const isPasswordValid = await passwordValid(
-			data.password,
+			data.password!,
 			userExists.password,
 		);
 
@@ -33,7 +37,7 @@ export const uploadProfilePhoto = async (
 			throw new ApiError("Senha inválida", 400);
 		}
 
-		data.password = await hashPassword(data.password);
+		data.password = await hashPassword(data.password!);
 		data.avatarUrl = cloudinaryResponse.secure_url;
 		data.avatarPublicId = cloudinaryResponse.public_id;
 

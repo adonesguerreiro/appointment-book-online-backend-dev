@@ -14,7 +14,7 @@ export const findAllSchedulesByCompanyId = async (
 	limit: number,
 ) => {
 	return await prisma.schedule.findMany({
-		where: { companyId },
+		where: { companyId, deletedAt: null },
 		skip,
 		take: limit,
 		orderBy: { date: "asc" },
@@ -23,7 +23,7 @@ export const findAllSchedulesByCompanyId = async (
 
 export const findScheduleById = async (id: number, companyId: number) => {
 	return await prisma.schedule.findFirst({
-		where: { id, companyId },
+		where: { id, companyId, deletedAt: null },
 	});
 };
 
@@ -77,6 +77,7 @@ export const findTimeSlotByCompanyId = async (
 		where: {
 			timeSlot,
 			companyId,
+			deletedAt: null,
 		},
 	});
 };

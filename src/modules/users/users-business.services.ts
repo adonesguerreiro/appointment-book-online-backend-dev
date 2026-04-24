@@ -58,8 +58,10 @@ export const createUser = async (createData: UserData) => {
 			throw new ApiError("Email está em uso", 400);
 		}
 
-		const createdHashPassword = await hashPassword(data.password);
-		data.password = createdHashPassword;
+		if (data.password) {
+			const createdHashPassword = await hashPassword(data.password);
+			data.password = createdHashPassword;
+		}
 
 		const user = await userServices.createUser(data);
 
@@ -86,10 +88,6 @@ export const updateUser = async (id: number, updateData: UserData) => {
 		}
 
 		if (!existingUser.password || !data.password) {
-			throw new ApiError("Senha é obrigatória", 400);
-		}
-
-		if (!data.password) {
 			throw new ApiError("Senha é obrigatória", 400);
 		}
 

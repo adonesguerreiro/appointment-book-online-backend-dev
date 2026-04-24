@@ -5,24 +5,23 @@ import * as customerServices from "./customer.services";
 export const getAllCustomersByCompanyId = async (
 	page: number,
 	limit: number,
-	companyId: number
+	companyId: number,
 ) => {
 	try {
 		const skip = (page - 1) * limit;
 
-		const totalItems = await customerServices.countAllCustomersByCompanyId(
-			companyId
-		);
+		const totalItems =
+			await customerServices.countAllCustomersByCompanyId(companyId);
 
 		const totalPages = Math.ceil(totalItems / limit);
 
-			if (page > totalPages && totalPages !== 0) {
+		if (page > totalPages && totalPages !== 0) {
 			throw new ApiError("Página não encontrada", 404);
 		}
 		const customersExists = await customerServices.findAllCustomersByCompanyId(
 			companyId,
 			skip,
-			limit
+			limit,
 		);
 
 		if (!customersExists) {
@@ -39,7 +38,7 @@ export const getCustomerById = async (id: number, companyId: number) => {
 	try {
 		const customerExists = await customerServices.findCustomerById(
 			id,
-			companyId
+			companyId,
 		);
 		if (!customerExists) {
 			throw new Error("Customer not found");
@@ -55,7 +54,7 @@ export const createCustomer = async (data: CustomerData) => {
 	try {
 		const customerExistsMobile = await customerServices.findCustomerByMobile(
 			data.mobile,
-			data.companyId
+			data.companyId,
 		);
 
 		if (customerExistsMobile) {
@@ -66,14 +65,14 @@ export const createCustomer = async (data: CustomerData) => {
 
 		const customerExists = await customerServices.findCustomerByName(
 			data.customerName,
-			data.companyId
+			data.companyId,
 		);
 
 		if (customerExists?.deletedAt) {
 			data.deletedAt = null;
 			customerCreated = customerServices.updateCustomer(
 				customerExists.id,
-				data
+				data,
 			);
 
 			return customerCreated;
@@ -91,7 +90,7 @@ export const updateCustomer = async (id: number, data: CustomerData) => {
 	try {
 		const customerExists = await customerServices.findCustomerById(
 			id,
-			data.companyId
+			data.companyId,
 		);
 		if (!customerExists) {
 			throw new Error("Customer not found");
@@ -100,7 +99,7 @@ export const updateCustomer = async (id: number, data: CustomerData) => {
 		const customerExistsMobile = await customerServices.findCustomerByMobile(
 			data.mobile,
 			data.companyId,
-			id
+			id,
 		);
 
 		if (customerExistsMobile && customerExistsMobile.id !== id) {
@@ -119,7 +118,7 @@ export const deleteCustomer = async (id: number, companyId: number) => {
 	try {
 		const customerExists = await customerServices.findCustomerById(
 			id,
-			companyId
+			companyId,
 		);
 
 		if (!customerExists) {
@@ -132,7 +131,7 @@ export const deleteCustomer = async (id: number, companyId: number) => {
 		if (customerExistsSchedules) {
 			throw new ApiError(
 				"Cliente possui agendamentos, não é possível deletar",
-				400
+				400,
 			);
 		}
 

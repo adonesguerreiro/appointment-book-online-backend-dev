@@ -22,7 +22,7 @@ export const findCompanyByEmailOrCnpjOrMobile = async (
 	mobile?: string,
 ) => {
 	return await prisma.company.findFirst({
-		where: { OR: [{ mobile }, { email }, { cnpj }] },
+		where: { OR: [{ mobile }, { email }, { cnpj }], deletedAt: null },
 	});
 };
 
@@ -36,17 +36,16 @@ export const findUserSlugCompanyByName = async (slugCompany: string) => {
 	return await prisma.company.findFirst({
 		where: { slugCompany },
 		select: {
-			users : {
+			users: {
 				select: {
 					id: true,
 					name: true,
 					avatarUrl: true,
-				}
-			}
-		}
+				},
+			},
+		},
 	});
 };
-
 
 export const createCompany = async (data: CompanyData) => {
 	return await prisma.company.create({

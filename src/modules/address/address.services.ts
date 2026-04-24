@@ -3,14 +3,15 @@ import { prisma } from "../../config/prisma";
 
 export const findAllAddresses = async (skip: number, limit: number) => {
 	return await prisma.address.findMany({
+		where: { deletedAt: null },
 		skip,
 		take: limit,
 	});
 };
 
 export const findAddressById = async (companyId: number) => {
-	return await prisma.address.findUnique({
-		where: { companyId },
+	return await prisma.address.findFirst({
+		where: { companyId, deletedAt: null },
 	});
 };
 
