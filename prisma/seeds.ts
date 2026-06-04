@@ -34,14 +34,14 @@ async function main() {
 		},
 	});
 
-	const password = "Sanbox@123";
+	const password = process.env.SEED_ADMIN_PASSWORD!;
 	const passwordHash = await bcrypt.hash(password, 10);
 	await prisma.user.upsert({
-		where: { email: "adoneslori@gmail.com" },
+		where: { email: process.env.SEED_ADMIN_EMAIL! },
 		update: {},
 		create: {
 			name: "Adones Lori",
-			email: "adoneslori@gmail.com",
+			email: process.env.SEED_ADMIN_EMAIL!,
 			password: passwordHash,
 			companyId: companyCreated.id,
 		},

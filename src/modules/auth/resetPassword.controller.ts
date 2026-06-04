@@ -9,9 +9,21 @@ export const resetPassword = async (req: Request, res: Response) => {
 	const { newPassword } = req.body;
 	const token = req.query.token as string;
 	try {
-		const payload = jwt.verify(token, authConfig.secret) as { userId: number };
+		const payload = jwt.verify(token, authConfig.secret) as {
+			userId: number;
+			companyId: number;
+			type: string;
+		};
+
 		if (!payload) {
 			res.status(401).send({ error: "Token inválido ou expirado." });
+			return;
+		}
+
+		if (payload.type !== "reset-password") {
+			res
+				.status(401)
+				.send({ error: "Token inválido para redefinição de senha." });
 			return;
 		}
 

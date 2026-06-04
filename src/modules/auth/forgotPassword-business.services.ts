@@ -7,9 +7,17 @@ export const forgotPassword = async (email: string) => {
 	try {
 		const existingUser = await userServices.findUserByEmail(email);
 		if (existingUser) {
-			const token = jwt.sign({ userId: existingUser.id }, authConfig.secret, {
-				expiresIn: "15m",
-			});
+			const token = jwt.sign(
+				{
+					userId: existingUser.id,
+					companyId: existingUser.companyId,
+					type: "reset-password",
+				},
+				authConfig.secret,
+				{
+					expiresIn: "15m",
+				},
+			);
 
 			const resend = new Resend(process.env.RESEND_API_KEY);
 

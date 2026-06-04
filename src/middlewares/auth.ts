@@ -41,7 +41,7 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 						return reject(err);
 					}
 					resolve(decoded);
-				}
+				},
 			);
 		});
 

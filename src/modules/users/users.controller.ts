@@ -50,7 +50,7 @@ export const getUserBySlugCompany = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
 	try {
-		const { name, email, password, specialty } = req.body;
+		const { name, email, password } = req.body;
 		const user = await usersBussinessServices.createUser({
 			name,
 			email,

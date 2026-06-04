@@ -5,6 +5,9 @@ import { hashPassword } from "../../utils/hashPassword";
 import { passwordValid } from "../../utils/passwordValid";
 import * as userServices from "./users.services";
 import * as company from "../companies/companies.services";
+import { authConfig } from "../../config/auth";
+import { Resend } from "resend";
+import jwt from "jsonwebtoken";
 
 export const getAllUsers = async (page: number, limit: number) => {
 	try {
@@ -51,7 +54,7 @@ export const getUserBySlugCompany = async (slugCompany: string) => {
 export const createUser = async (createData: UserData) => {
 	try {
 		await userSchema.validate(createData, { abortEarly: false });
-		const { newPassword, confirmPassword, ...data } = createData;
+		const { ...data } = createData;
 
 		const existingUser = await userServices.findUserByEmail(data.email);
 		if (existingUser) {
@@ -68,6 +71,30 @@ export const createUser = async (createData: UserData) => {
 		if (!user) {
 			throw new Error("Usuário não criado");
 		}
+
+		const token = jwt.sign(
+			{ userId: user.id, type: "create-password" },
+			authConfig.secret,
+			{
+				expiresIn: "5m",
+			},
+		);
+
+		const resend = new Resend(process.env.RESEND_API_KEY);
+
+		const { data: emailData, error } = await resend.emails.send({
+			from: "Agenda ja <onboarding@resend.dev>",
+			to: [`${user.email}`],
+			subject: "Criação de senha",
+			html: `<strong>Email de criação de senha</strong> </br> Olá ${user.name}, </br> Você solicitou a criação de senha. </br> Por favor, clique no link abaixo para redefinir sua senha: </br>
+				<br><a href="${process.env.FRONTEND_URL}/create-password?token=${token}">Clique aqui para redefinir sua senha</a>`,
+		});
+
+		if (error) {
+			return console.error({ error });
+		}
+
+		console.log({ data: emailData });
 
 		return user;
 	} catch (err) {

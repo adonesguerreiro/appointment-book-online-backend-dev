@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express, { Express, Request, Response } from "express";
 import auth from "./middlewares/auth";
 import {
+	createPassword,
 	logout,
 	refreshToken,
 	sessionMe,
@@ -73,6 +74,7 @@ app.post("/sessions", sessions, authLimiter);
 app.post("/refresh-token", refreshToken, globalLimiter);
 app.post("/forgot-password", forgotPassword, authLimiter);
 app.post("/reset-password", resetPassword, globalLimiter);
+app.post("/create-password", createPassword, globalLimiter);
 
 // Lista agenda da empresa
 app.get(

@@ -8,17 +8,17 @@ datasource db {
 }
 
 model User {
-  id             Int        @id @default(autoincrement())
-  name           String     @db.VarChar(255)
-  email          String     @unique @db.VarChar(255)
-  password       String?    @db.VarChar(255)
-  blocked        Boolean?   @db.Boolean
-  avatarUrl      String?    @db.VarChar(255)
-  avatarPublicId String?    @db.VarChar(255)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id             Int       @id @default(autoincrement())
+  name           String    @db.VarChar(255)
+  email          String    @unique @db.VarChar(255)
+  password       String?   @db.VarChar(255)
+  blocked        Boolean?  @db.Boolean
+  avatarUrl      String?   @db.VarChar(255)
+  avatarPublicId String?   @db.VarChar(255)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   companyId      Int
-  company        Company?   @relation(fields: [companyId], references: [id])
+  company        Company?  @relation(fields: [companyId], references: [id])
   deletedAt      DateTime?
 }
 
@@ -43,19 +43,19 @@ model Company {
 }
 
 model Address {
-  id           Int        @id @default(autoincrement())
-  street       String     @db.VarChar(255)
-  number       String     @db.VarChar(255)
-  complement   String?    @db.VarChar(255)
-  neighborhood String     @db.VarChar(255)
-  city         String     @db.VarChar(255)
-  state        String     @db.VarChar(255)
-  postalCode   String     @db.VarChar(255)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id           Int       @id @default(autoincrement())
+  street       String    @db.VarChar(255)
+  number       String    @db.VarChar(255)
+  complement   String?   @db.VarChar(255)
+  neighborhood String    @db.VarChar(255)
+  city         String    @db.VarChar(255)
+  state        String    @db.VarChar(255)
+  postalCode   String    @db.VarChar(255)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
-  companyId    Int        @unique
-  company      Company    @relation(fields: [companyId], references: [id])
+  companyId    Int       @unique
+  company      Company   @relation(fields: [companyId], references: [id])
 }
 
 model Service {
@@ -139,7 +139,7 @@ model AvaliableTimeSlot {
   timeSlot        String        @db.VarChar(5)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime
-  deletedAt      DateTime?
+  deletedAt       DateTime?
   avaliableTimeId Int
   companyId       Int
   avaliableTime   AvaliableTime @relation(fields: [avaliableTimeId], references: [id])

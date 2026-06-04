@@ -38,6 +38,24 @@ export const sessions = async (req: SessionRequest, res: Response) => {
 	}
 };
 
+export const createPassword = async (req: Request, res: Response) => {
+	try {
+		const { newPassword } = req.body;
+		const token = req.query.token as string;
+
+		await authBusinessServices.createPassword({ token, password: newPassword });
+
+		return res.status(200).json({
+			message: "Senha criada com sucesso",
+		});
+	} catch (error: any) {
+		const yupHandled = handleYupError(error, res);
+		if (yupHandled) return;
+
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+};
+
 export const refreshToken = async (req: Request, res: Response) => {
 	try {
 		const refreshToken = req.cookies.refreshToken;

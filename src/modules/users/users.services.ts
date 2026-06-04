@@ -10,6 +10,13 @@ export const findAllUsers = async (skip: number, limit: number) => {
 export const findUserById = async (id: number) => {
 	return await prisma.user.findFirst({
 		where: { id, deletedAt: null },
+		include: {
+			company: {
+				select: {
+					slugCompany: true,
+				},
+			},
+		},
 	});
 };
 

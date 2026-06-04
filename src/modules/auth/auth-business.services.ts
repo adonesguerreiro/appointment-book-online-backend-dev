@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import jwt from "jsonwebtoken";
 import { authConfig, refreshConfig } from "../../config/auth";
 import { SessionData } from "../../interfaces/SessionData";
@@ -6,6 +5,8 @@ import { sessionSchema } from "../../schemas/sessionSchema";
 import { ApiError } from "../../utils/apiError";
 import { passwordValid } from "../../utils/passwordValid";
 import * as userServices from "../users/users.services";
+import { UserData } from "../../interfaces/UserData";
+import { hashPassword } from "../../utils/hashPassword";
 
 export const authSession = async (sessionData: SessionData) => {
 	try {
@@ -55,6 +56,58 @@ export const authSession = async (sessionData: SessionData) => {
 		};
 
 		return { jwtToken, refreshToken };
+	} catch (err) {
+		throw err;
+	}
+};
+
+export const createPassword = async (data: {
+	token: string;
+	password: string;
+}) => {
+	try {
+		const { token, password } = data;
+
+		const payload = jwt.verify(token, authConfig.secret) as {
+			userId: number;
+			companyId: number;
+			type: string;
+		};
+
+		if (!payload) {
+			throw new ApiError("Token inválido ou expirado", 400);
+		}
+
+		if (payload.type !== "create-password") {
+			throw new ApiError("Token inválido para criação de senha", 400);
+		}
+
+		const user = await userServices.findUserById(payload.userId);
+
+		if (!user) {
+			throw new ApiError("Usuário não encontrado", 404);
+		}
+
+		if (user.password !== null) {
+			throw new ApiError("Senha já criada para este usuário", 400);
+		}
+
+		data.password = await hashPassword(password);
+
+		const dataUpdate: UserData = {
+			name: user.name,
+			email: user.email,
+			password: data.password,
+			companyId: user.companyId,
+		};
+
+		const updatedUser = await userServices.updateUser(user.id, dataUpdate);
+
+		if (!updatedUser) {
+			throw new ApiError("Erro ao criar senha", 500);
+		}
+
+		return { message: "Senha criada com sucesso" };
 	} catch (err) {
 		throw err;
 	}
