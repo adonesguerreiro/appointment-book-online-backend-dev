@@ -1,3 +1,4 @@
+import { log } from "../../config/logger";
 import { ScheduleData } from "../../interfaces/ScheduleData";
 import { ApiError } from "../../utils/apiError";
 import * as scheduleServices from "./schedule.services";
@@ -31,6 +32,10 @@ export const getAllSchedulesByCompanyId = async (
 
 		return { schedulesExists, totalPages };
 	} catch (err) {
+		log().error(
+			{ err, page: page, limit: limit },
+			"Error while fetching schedules",
+		);
 		throw err;
 	}
 };
@@ -47,6 +52,10 @@ export const getScheduleById = async (id: number, companyId: number) => {
 
 		return scheduleExists;
 	} catch (err) {
+		log().error(
+			{ err, id: id, companyId: companyId },
+			"Error while fetching schedule by id",
+		);
 		throw err;
 	}
 };
@@ -71,28 +80,22 @@ export const getScheduleTimeUnavaliable = async (
 			);
 		}
 
-		return existingScheduleTime;
-	} catch (err) {
-		throw err;
-	}
-};
-
-export const getTimeSlotByCompanyId = async (
-	timeSlot: string,
-	companyId: number,
-) => {
-	try {
-		const existingTimeSlot = await scheduleServices.findTimeSlotByCompanyId(
-			timeSlot,
-			companyId,
+		log().info(
+			{ existingScheduleTime: existingScheduleTime },
+			"Get schedule time unavaliable completed successfully",
 		);
 
-		if (!existingTimeSlot) {
-			throw new ApiError("Avalible time slot not found", 400);
-		}
-
-		return existingTimeSlot;
+		return existingScheduleTime;
 	} catch (err) {
+		log().error(
+			{
+				err,
+				startOfDayDate: startOfDayDate,
+				endOfDayDate: endOfDayDate,
+				companyId: companyId,
+			},
+			"Error while fetching schedule time unavaliable",
+		);
 		throw err;
 	}
 };
@@ -111,8 +114,14 @@ export const createSchedule = async (data: ScheduleData) => {
 
 		const scheduleCreated = await scheduleServices.createSchedule(data);
 
+		log().info(
+			{ scheduleCreated: scheduleCreated },
+			"Create schedule completed successfully",
+		);
+
 		return scheduleCreated;
 	} catch (err) {
+		log().error({ err, body: data }, "Error while creating schedule");
 		throw err;
 	}
 };
@@ -131,8 +140,14 @@ export const updateSchedule = async (id: number, data: ScheduleData) => {
 
 		const scheduleUpdated = await scheduleServices.updateSchedule(id, data);
 
+		log().info(
+			{ scheduleUpdated: scheduleUpdated },
+			"Update schedule completed successfully",
+		);
+
 		return scheduleUpdated;
 	} catch (err) {
+		log().error({ err, id: id, body: data }, "Error while updating schedule");
 		throw err;
 	}
 };

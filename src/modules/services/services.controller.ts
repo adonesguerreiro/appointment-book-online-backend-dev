@@ -33,7 +33,7 @@ export const getAllServicesByCompanyId = async (
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -68,7 +68,7 @@ export const getAllServicesBySlugCompany = async (
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -88,7 +88,7 @@ export const getServiceById = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -110,7 +110,7 @@ export const createService = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -135,7 +135,7 @@ export const updateService = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -155,6 +155,6 @@ export const deleteService = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };

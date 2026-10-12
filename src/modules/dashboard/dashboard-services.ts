@@ -3,7 +3,7 @@ import { prisma } from "../../config/prisma";
 export const getAllAppointmentsPerMonthAndYear = async (
 	month: string,
 	year: string,
-	companyId: number
+	companyId: number,
 ) => {
 	return await prisma.schedule.groupBy({
 		by: ["status"],

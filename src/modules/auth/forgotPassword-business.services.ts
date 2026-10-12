@@ -1,4 +1,6 @@
+import { request } from "http";
 import { authConfig } from "../../config/auth";
+import { log } from "../../config/logger";
 import * as userServices from "../users/users.services";
 import jwt from "jsonwebtoken";
 import { Resend } from "resend";
@@ -13,7 +15,7 @@ export const forgotPassword = async (email: string) => {
 					companyId: existingUser.companyId,
 					type: "reset-password",
 				},
-				authConfig.secret,
+				authConfig.secret as string,
 				{
 					expiresIn: "15m",
 				},
@@ -30,10 +32,21 @@ export const forgotPassword = async (email: string) => {
 			});
 
 			if (error) {
-				return console.error({ error });
+				log().error(
+					{ err: error, email },
+					"failed to send password reset email",
+				);
+				throw new Error("Failed to send reset email");
 			}
 
-			console.log({ data });
+			log().info(
+				{ email: email,
+					userId: existingUser.id,
+					companyId: existingUser.companyId,
+					data: data,
+				},
+				"Email sent successfully",
+			);
 
 			return {
 				message:
@@ -41,6 +54,7 @@ export const forgotPassword = async (email: string) => {
 			};
 		}
 	} catch (err) {
+		log().error({ err, email: email }, "Email not sent");
 		console.log(err);
 		throw err;
 	}

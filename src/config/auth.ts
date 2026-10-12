@@ -1,7 +1,8 @@
-import { config } from "dotenv";
-config();
+import dotenv from "dotenv";
+
+dotenv.config();
 export const authConfig = {
-	secret: process.env.APP_SECRET_KEY || "",
+	secret: process.env.APP_SECRET_KEY,
 	expiresIn: "15m",
 };
 

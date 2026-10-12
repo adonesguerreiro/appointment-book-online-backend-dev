@@ -2,6 +2,7 @@ import { ServiceData } from "../../interfaces/ServiceData";
 import { ApiError } from "../../utils/apiError";
 import * as services from "./services";
 import * as company from "../companies/companies.services";
+import { log } from "../../config/logger";
 
 export const getAllServicesByCompanyId = async (
 	page: number,
@@ -107,8 +108,14 @@ export const createService = async (data: ServiceData) => {
 
 		serviceCreated = await services.createService(data);
 
+		log().info(
+			{ serviceCreated: serviceCreated },
+			"Create service process completed successfully",
+		);
+
 		return serviceCreated;
 	} catch (err) {
+		log().error({ err, body: data }, "Error while creating service");
 		throw err;
 	}
 };
@@ -131,8 +138,14 @@ export const updateService = async (id: number, data: ServiceData) => {
 
 		const serviceUpdated = await services.updateService(id, data);
 
+		log().info(
+			{ serviceUpdated: serviceUpdated },
+			"Update service process completed successfully",
+		);
+
 		return serviceUpdated;
 	} catch (err) {
+		log().error({ err, id: id, body: data }, "Error while updating service");
 		throw err;
 	}
 };
@@ -155,8 +168,14 @@ export const deleteService = async (id: number, companyId: number) => {
 
 		const serviceDeleted = await services.deleteService(id);
 
+		log().info(
+			{ serviceDeleted: serviceDeleted.id },
+			"Delete service completed successfully",
+		);
+
 		return serviceDeleted;
 	} catch (err) {
+		log().error({ err, id: id }, "Error while deleting service");
 		throw err;
 	}
 };

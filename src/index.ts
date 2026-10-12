@@ -1,5 +1,6 @@
-import cors from "cors";
 import dotenv from "dotenv";
+import cors from "cors";
+
 import express, { Express, Request, Response } from "express";
 import auth from "./middlewares/auth";
 import {
@@ -22,27 +23,39 @@ import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTi
 import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
 import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
 import * as bookingControllers from "./modules/booking/booking.controller";
+import * as avaliableTimesSlotsControllers from "./modules/timeSlots/timeSlots.controller";
 import { upload } from "./middlewares/upload";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import * as Sentry from "@sentry/node";
+import requestId from "./middlewares/requestId";
+import { prisma } from "./config/prisma";
 
 dotenv.config();
 
 const app: Express = express();
-const port = process.env.PORT || 5000;
+Sentry.setupExpressErrorHandler(app);
+Sentry.init({
+	dsn: process.env.SENTRY_DSN,
+});
 
-app.use(express.json());
+const port = process.env.PORT || 3000;
+
+app.use(requestId);
+
 app.use(
+	express.json(),
+	express.urlencoded({ extended: true }),
 	cors({
 		origin: process.env.FRONTEND_URL,
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "DELETE"],
 		allowedHeaders: ["Content-Type", "Authorization"],
 	}),
+	helmet(),
+	cookieParser(),
 );
-app.use(helmet());
-app.use(cookieParser());
 
 const globalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
@@ -60,45 +73,41 @@ const authLimiter = rateLimit({
 	message: "Too many login attempts, please try again in 1 minute.",
 });
 
-app.get("/", (req: Request, res: Response) => {
-	const { message } = req.body;
-
-	if (!message) return res.status(400).send({ error: "Message is required" });
-
-	res.send({ message });
+app.get("/health", (_req: Request, res: Response) => {
+	return res.status(200).json({ message: "OK" });
 });
 
 // Autenticação - Login, Esqueci minha senha e Reset de senha
 
-app.post("/sessions", sessions, authLimiter);
-app.post("/refresh-token", refreshToken, globalLimiter);
-app.post("/forgot-password", forgotPassword, authLimiter);
-app.post("/reset-password", resetPassword, globalLimiter);
-app.post("/create-password", createPassword, globalLimiter);
+app.post("/sessions", authLimiter, sessions);
+app.post("/refresh-token", globalLimiter, refreshToken);
+app.post("/forgot-password", authLimiter, forgotPassword);
+app.post("/reset-password", globalLimiter, resetPassword);
+app.post("/create-password", globalLimiter, createPassword);
 
 // Lista agenda da empresa
 app.get(
 	"/public/:slugCompany",
-	bookingControllers.getAllTimeSlotBySlugCompany,
 	globalLimiter,
+	bookingControllers.getAllTimeSlotBySlugCompany,
 );
 
 app.get(
 	"/public/service/:slugCompany",
-	servicesControllers.getAllServicesBySlugCompany,
 	globalLimiter,
+	servicesControllers.getAllServicesBySlugCompany,
 );
 
 app.get(
 	"/public/user/:slugCompany",
-	usersControllers.getUserBySlugCompany,
 	globalLimiter,
+	usersControllers.getUserBySlugCompany,
 );
 
 app.post(
 	"/public/booking/:slugCompany",
-	bookingControllers.createBooking,
 	globalLimiter,
+	bookingControllers.createBooking,
 );
 
 app.use(auth);
@@ -158,6 +167,12 @@ app.post("/customers", customersControllers.createCustomer);
 app.put("/customers/:id", customersControllers.updateCustomer);
 app.delete("/customers/:id", customersControllers.deleteCustomer);
 
+// Horários por data
+app.get(
+	"/avaliable-times/:date",
+	avaliableTimesSlotsControllers.getTimeSlotsByDayAndCompanyId,
+);
+
 // Horário disponível
 app.get(
 	"/avaliable-times",
@@ -193,11 +208,36 @@ app.delete(
 	unavaliableTimesControllers.deleteUnavaliableTime,
 );
 
-app.use((err: any, res: express.Response) => {
-	console.error("Internal error:", err.message);
-	res.status(500).json({ error: "Internal server error" });
-});
+app.use(
+	(
+		err: any,
+		req: express.Request,
+		res: express.Response,
+		_next: express.NextFunction,
+	) => {
+		req.log.error({ err, path: req.path }, "unhandled error");
+		res.status(500).json({ error: "Internal server error" });
+	},
+);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
 	console.log(`Server running on port ${port}`);
 });
+
+const gracefulShutdown = async (signal: string) => {
+	try {
+		console.log(`Received ${signal}. Closing database connection...`);
+		server.close(async () => {
+			await prisma.$disconnect();
+			console.log("Database connection closed. Exiting process.");
+			process.exit(0);
+		});
+		setTimeout(() => process.exit(1), 10_000).unref();
+	} catch (error) {
+		console.error("Error during graceful shutdown:", error);
+		process.exit(1);
+	}
+};
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));

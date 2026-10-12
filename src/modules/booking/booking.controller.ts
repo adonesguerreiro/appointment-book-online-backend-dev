@@ -6,6 +6,7 @@ import * as servicesBussinessServices from "../services/services-business.servic
 import dayjs from "dayjs";
 import * as scheduleBussinessServices from "../schedule/schedule.business-services";
 import { bookAppointmentSchema } from "../../schemas/bookAppointmentSchema";
+import * as timeSlotsBusinessServices from "../timeSlots/timeSlots.business-services";
 
 export const getAllTimeSlotBySlugCompany = async (
 	req: Request,
@@ -55,9 +56,9 @@ export const getAllTimeSlotBySlugCompany = async (
 			limit,
 		);
 
-		res.send(timeSlot);
+		res.send(timeSlot.timeSlots);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -110,7 +111,7 @@ export const createBooking = async (req: Request, res: Response) => {
 		}
 
 		const timeSlotExists =
-			await scheduleBussinessServices.getTimeSlotByCompanyId(
+			await timeSlotsBusinessServices.getTimeSlotByCompanyId(
 				time,
 				Number(companyBySlug.id),
 			);
@@ -130,12 +131,12 @@ export const createBooking = async (req: Request, res: Response) => {
 			duration: serviceExists.duration,
 			price: serviceExists.price.toNumber(),
 			status: "SCHEDULED",
-			timeSlotId: timeSlotExists.id,
+			timeSlotId: Number(timeSlotExists),
 		});
 
 		res.send(booking);
 	} catch (err) {
 		console.error(err);
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };

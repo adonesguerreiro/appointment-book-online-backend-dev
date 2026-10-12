@@ -4,6 +4,7 @@ import * as avaliableTimesServices from "./avaliableTimes.services";
 import { dateConvertDay } from "../../utils/dateConvertDay";
 import { AvailableTimeData } from "../../interfaces/AvailableTimeData";
 import { generateAvaliableTimes } from "../../utils/generateAvaliableTimes";
+import { log } from "../../config/logger";
 
 export const getAllAvaliableTimesByCompany = async (
 	page: number,
@@ -57,6 +58,10 @@ export const getAllAvaliableTimesByCompany = async (
 
 		return { avaliableTimes, totalPages, currentPage: page };
 	} catch (err) {
+		log().error(
+			{ err, companyId: companyId, page: page, limit: limit },
+			"Error during get all available times by company process",
+		);
 		throw err;
 	}
 };
@@ -70,8 +75,13 @@ export const getAvaliableTimeById = async (id: number, companyId: number) => {
 		if (!avaliableTime) {
 			throw new Error("AvaliableTime not found");
 		}
+
 		return avaliableTime;
 	} catch (err) {
+		log().error(
+			{ err, id: id, companyId: companyId },
+			"Error during get available time by id process",
+		);
 		throw err;
 	}
 };
@@ -128,8 +138,20 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 			throw new Error("AvaliableTimeSlot not found");
 		}
 
+		log().info(
+			{
+				avaliableTimeCreated: avaliableTimeCreated.id,
+				avaliableTimeSlotCreated: timeSlotCreated,
+			},
+			"Create available time process completed successfully",
+		);
+
 		return { avaliableTimeCreated, avaliableTimeSlotCreated: timeSlotCreated };
 	} catch (err) {
+		log().error(
+			{ err, avaliableTimeData: data },
+			"Error during create available time process",
+		);
 		throw err;
 	}
 };
@@ -197,8 +219,21 @@ export const updateAvaliableTime = async (
 			throw new Error("AvaliableTimeSlot not found");
 		}
 
+		log().info(
+			{
+				avaliableTimeId: id,
+				avaliableTimeUpdated: avaliableTimeUpdated.id,
+				avaliableTimeSlotUpdated: timeSlotUpdated,
+			},
+			"Update available time process completed successfully",
+		);
+
 		return avaliableTimeUpdated;
 	} catch (err) {
+		log().error(
+			{ err, avaliableTimeId: id, avaliableTimeData: data },
+			"Error during update available time process",
+		);
 		throw err;
 	}
 };
@@ -229,8 +264,17 @@ export const deleteAvaliableTime = async (id: number, companyId: number) => {
 		const avaliableTimeDeleted =
 			await avaliableTimesServices.deleteAvaliableTime(id);
 
+		log().info(
+			{ avaliableTimeDeleted: avaliableTimeDeleted.id },
+			"Delete available time process completed successfully",
+		);
+
 		return avaliableTimeDeleted;
 	} catch (err) {
+		log().error(
+			{ err, id: id, companyId: companyId },
+			"Error during delete available time process",
+		);
 		throw err;
 	}
 };

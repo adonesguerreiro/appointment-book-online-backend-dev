@@ -1,26 +1,27 @@
-import { DayWeek } from "@prisma/client";
-import { prisma } from "../../config/prisma";
+import { log } from "../../config/logger";
+import { ApiError } from "../../utils/apiError";
+import * as scheduleServices from "../schedule/schedule.services";
 
-export const findTimeSlotsByDayAndCompanyId = async (
+export const getTimeSlotByCompanyId = async (
+	timeSlot: string,
 	companyId: number,
-	day: DayWeek,
-	skip: number,
-	limit: number,
 ) => {
-	return await prisma.avaliableTime.findMany({
-		where: {
+	try {
+		const existingTimeSlot = await scheduleServices.findTimeSlotByCompanyId(
+			timeSlot,
 			companyId,
-			...(day && { day: day as DayWeek }),
-			deletedAt: null,
-		},
-		include: {
-			avaliableTimeSlot: {
-				orderBy: {
-					timeSlot: "asc",
-				},
-			},
-		},
-		skip: skip,
-		take: limit,
-	});
+		);
+
+		if (!existingTimeSlot) {
+			throw new ApiError("Avalible time slot not found", 400);
+		}
+
+		return existingTimeSlot;
+	} catch (err) {
+		log().error(
+			{ err, timeSlot: timeSlot, companyId: companyId },
+			"Error while fetching time slot by company id",
+		);
+		throw err;
+	}
 };

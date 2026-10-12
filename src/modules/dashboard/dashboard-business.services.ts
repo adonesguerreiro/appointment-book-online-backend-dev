@@ -1,3 +1,4 @@
+import { log } from "../../config/logger";
 import * as dashboardServices from "./dashboard-services";
 
 export const dashboardPerMonthAndYear = async (
@@ -14,7 +15,10 @@ export const dashboardPerMonthAndYear = async (
 
 		return dashboard;
 	} catch (err) {
-		console.error(err);
+		log().error(
+			{ err, month: month, year: year, companyId: companyId },
+			"Error while fetching dashboard data",
+		);
 		throw new Error("Failed to fetch dashboard data.");
 	}
 };

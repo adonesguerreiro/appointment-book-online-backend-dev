@@ -1,3 +1,4 @@
+import { log } from "../../config/logger";
 import { CompanyData } from "../../interfaces/CompanyData";
 import { companySchema } from "../../schemas/companySchema";
 import { ApiError } from "../../utils/apiError";
@@ -13,6 +14,10 @@ export const getAllCompanies = (page: number, limit: number) => {
 
 		return companies;
 	} catch (err) {
+		log().error(
+			{ err, page: page, limit: limit },
+			"Error while fetching companies",
+		);
 		throw err;
 	}
 };
@@ -26,6 +31,7 @@ export const getCompanyById = async (id: number) => {
 
 		return companies;
 	} catch (err) {
+		log().error({ err }, "Error while fetching company");
 		throw err;
 	}
 };
@@ -55,8 +61,11 @@ export const createCompany = async (createData: CompanyData) => {
 
 		const company = await companiesServices.createCompany(createData);
 
+		log().info({ company: company }, "Create company completed successfully");
+
 		return company;
 	} catch (err) {
+		log().error({ err }, "Error while creating company");
 		throw err;
 	}
 };
@@ -92,8 +101,11 @@ export const updateCompany = async (id: number, updateData: CompanyData) => {
 
 		const company = await companiesServices.updateCompany(id, updateData);
 
+		log().info({ company: company }, "Update company completed successfully");
+
 		return company;
 	} catch (err) {
+		log().error({ err }, "Error while updating company");
 		throw err;
 	}
 };

@@ -9,7 +9,7 @@ export const uploadProfilePhoto = async (req: Request, res: Response) => {
 		const uploadProfilePhoto = await uploadBusinessServices.uploadProfilePhoto(
 			Number(req.userId),
 			file!,
-			req.body
+			req.body,
 		);
 
 		res.send(uploadProfilePhoto);
@@ -17,6 +17,6 @@ export const uploadProfilePhoto = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };

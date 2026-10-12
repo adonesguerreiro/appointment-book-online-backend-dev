@@ -8,6 +8,7 @@ import * as company from "../companies/companies.services";
 import { authConfig } from "../../config/auth";
 import { Resend } from "resend";
 import jwt from "jsonwebtoken";
+import { log } from "../../config/logger";
 
 export const getAllUsers = async (page: number, limit: number) => {
 	try {
@@ -17,8 +18,10 @@ export const getAllUsers = async (page: number, limit: number) => {
 		if (!usersExists) {
 			throw new Error("Users not found");
 		}
+
 		return usersExists;
 	} catch (err) {
+		log().error({ err }, "Error while fetching all users");
 		throw err;
 	}
 };
@@ -33,6 +36,7 @@ export const getUserById = async (id: number) => {
 
 		return userExists;
 	} catch (err) {
+		log().error({ err, id: id }, "Error while fetching user by id");
 		throw err;
 	}
 };
@@ -47,6 +51,10 @@ export const getUserBySlugCompany = async (slugCompany: string) => {
 
 		return userExists;
 	} catch (err) {
+		log().error(
+			{ err, slugCompany: slugCompany },
+			"Error while fetching user by slug company",
+		);
 		throw err;
 	}
 };
@@ -74,7 +82,7 @@ export const createUser = async (createData: UserData) => {
 
 		const token = jwt.sign(
 			{ userId: user.id, type: "create-password" },
-			authConfig.secret,
+			authConfig.secret as string,
 			{
 				expiresIn: "5m",
 			},
@@ -91,13 +99,17 @@ export const createUser = async (createData: UserData) => {
 		});
 
 		if (error) {
-			return console.error({ error });
+			log().error(
+				{ err: error, email: user.email },
+				"failed to send password reset email",
+			);
 		}
 
-		console.log({ data: emailData });
+		log().info({ email: user.email }, "Password reset email sent successfully");
 
 		return user;
 	} catch (err) {
+		log().error({ err }, "Error while creating user");
 		throw err;
 	}
 };
@@ -159,8 +171,11 @@ export const updateUser = async (id: number, updateData: UserData) => {
 			throw new Error("Usuário nao atualizado");
 		}
 
+		log().info({ id: id }, "Update user completed successfully");
+
 		return userUpdated;
 	} catch (err) {
+		log().error({ err, id: id, body: updateData }, "Error while updating user");
 		throw err;
 	}
 };

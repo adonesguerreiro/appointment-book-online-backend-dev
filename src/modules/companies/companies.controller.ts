@@ -15,7 +15,7 @@ export const getAllCompanies = async (req: Request, res: Response) => {
 		);
 		res.send(companies);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 export const getCompaniesById = async (req: Request, res: Response) => {
@@ -30,7 +30,7 @@ export const getCompaniesById = async (req: Request, res: Response) => {
 
 		res.send(company);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 

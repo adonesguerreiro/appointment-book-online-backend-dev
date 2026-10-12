@@ -27,7 +27,7 @@ export const getAllAvaliableTimesByCompanyId = async (
 
 		res.send(unavaliableTimes);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -43,7 +43,7 @@ export const getUnavaliableTimeById = async (req: Request, res: Response) => {
 		}
 		res.send(unavaliableTime);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -70,7 +70,7 @@ export const createUnavaliableTime = async (req: Request, res: Response) => {
 		console.error(err);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -98,7 +98,7 @@ export const updateUnavaliableTime = async (req: Request, res: Response) => {
 		console.error(err);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -116,6 +116,6 @@ export const deleteUnavaliableTime = async (req: Request, res: Response) => {
 		}
 		res.send(unavaliableTime);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };

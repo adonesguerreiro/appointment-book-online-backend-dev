@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { dateConvertDay } from "../../utils/dateConvertDay";
 import * as scheduleServices from "../schedule/schedule.services";
 import { ScheduleData } from "../../interfaces/ScheduleData";
+import { log } from "../../config/logger";
 
 export const getAllTimeSlotByCompanyId = async (
 	slugCompany: string,
@@ -56,6 +57,10 @@ export const getAllTimeSlotByCompanyId = async (
 
 		return { timeSlots: timeSlotsExists, totalPages };
 	} catch (err) {
+		log().error(
+			{ err, slugCompany: slugCompany, companyId: companyId, date: date },
+			"Error while fetching time slots",
+		);
 		throw err;
 	}
 };
@@ -78,8 +83,14 @@ export const createBooking = async (data: ScheduleData) => {
 			throw new Error("Booking not created");
 		}
 
+		log().info(
+			{ schedule: scheduleExists, booking: booking },
+			"Create booking completed successfully",
+		);
+
 		return booking;
 	} catch (err) {
+		log().error({ err, body: data }, "Error while creating booking");
 		throw err;
 	}
 };

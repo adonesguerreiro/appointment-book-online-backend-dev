@@ -7,6 +7,7 @@ import * as services from "../services/services";
 import { Request, Response } from "express";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import * as timeSlotsBusinessServices from "../timeSlots/timeSlots.business-services";
 
 dayjs.extend(utc);
 
@@ -41,7 +42,7 @@ export const getAllSchedulesByCompanyId = async (
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -61,7 +62,7 @@ export const getScheduleById = async (req: Request, res: Response) => {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -126,7 +127,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 		}
 
 		const timeSlotIdExists =
-			await scheduleBussinessServices.getTimeSlotByCompanyId(
+			await timeSlotsBusinessServices.getTimeSlotByCompanyId(
 				timeSlotAvaliable,
 				Number(req.companyId),
 			);
@@ -159,7 +160,7 @@ export const createSchedule = async (req: Request, res: Response) => {
 		console.error(err);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -209,7 +210,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 		}
 
 		const timeSlotIdExists =
-			await scheduleBussinessServices.getTimeSlotByCompanyId(
+			await timeSlotsBusinessServices.getTimeSlotByCompanyId(
 				timeSlotAvaliable,
 				Number(req.companyId),
 			);
@@ -245,6 +246,6 @@ export const updateSchedule = async (req: Request, res: Response) => {
 		console.error(err);
 		if (yupHandled) return;
 
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };

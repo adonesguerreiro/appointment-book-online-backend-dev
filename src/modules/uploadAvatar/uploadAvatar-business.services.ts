@@ -6,6 +6,7 @@ import { uploadToCloudinary } from "./cloudinary.services";
 import { passwordValid } from "../../utils/passwordValid";
 import { ApiError } from "../../utils/apiError";
 import { hashPassword } from "../../utils/hashPassword";
+import { log } from "../../config/logger";
 
 export const uploadProfilePhoto = async (
 	id: number,
@@ -43,8 +44,17 @@ export const uploadProfilePhoto = async (
 
 		const upload = await uploadServices.uploadProfilePhoto(id, data);
 
+		log().info(
+			{ upload: upload },
+			"Upload profile photo completed successfully",
+		);
+
 		return upload;
 	} catch (err) {
+		log().error(
+			{ err, id: id, data: data },
+			"Error while uploading profile photo",
+		);
 		throw err;
 	}
 };

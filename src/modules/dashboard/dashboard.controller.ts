@@ -9,10 +9,10 @@ export const dashboardPerMonthAndYear = async (req: Request, res: Response) => {
 			await dashboardBusinessServices.dashboardPerMonthAndYear(
 				month,
 				year,
-				Number(req.companyId)
+				Number(req.companyId),
 			);
 
-		return res.send({scheduleByStatus});
+		return res.send({ scheduleByStatus });
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ error: "Internal server error" });

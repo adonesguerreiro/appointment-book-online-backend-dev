@@ -1,3 +1,4 @@
+import { log } from "../../config/logger";
 import { UnavaliableData } from "../../interfaces/UnavaliableData";
 import { ApiError } from "../../utils/apiError";
 import * as unavaliableTimesServices from "./unavaliableTimes.services";
@@ -34,6 +35,10 @@ export const getAllUnavaliableTimesByCompany = async (
 
 		return { unavaliableTimes, totalPages, currentPage: page };
 	} catch (err) {
+		log().error(
+			{ err, page: page, limit: limit },
+			"Error while fetching AvaliableTimes",
+		);
 		throw err;
 	}
 };
@@ -45,8 +50,13 @@ export const getAvaliableTimeById = async (id: number, companyId: number) => {
 		if (!avaliableTime) {
 			throw new Error("AvaliableTime not found");
 		}
+
 		return avaliableTime;
 	} catch (err) {
+		log().error(
+			{ err, id: id, companyId: companyId },
+			"Error while fetching available time by id",
+		);
 		throw err;
 	}
 };
@@ -98,8 +108,14 @@ export const createUnavaliableTime = async (data: UnavaliableData) => {
 		const unavaliableTimeCreated =
 			await unavaliableTimesServices.createUnavaliableTime(data);
 
+		log().info(
+			{ unavaliableTimeCreated: unavaliableTimeCreated },
+			"Create AvaliableTime completed successfully",
+		);
+
 		return unavaliableTimeCreated;
 	} catch (err) {
+		log().error({ err, body: data }, "Error while creating AvaliableTime");
 		throw err;
 	}
 };
@@ -149,8 +165,17 @@ export const updateUnavaliableTime = async (
 		if (!unavaliableTimeUpdated) {
 			throw new ApiError("UnavaliableTime not found", 404);
 		}
+
+		log().info(
+			{ unavaliableTimeUpdated: unavaliableTimeUpdated },
+			"Update AvaliableTime completed successfully",
+		);
 		return unavaliableTimeUpdated;
 	} catch (err) {
+		log().error(
+			{ err, id: id, body: data },
+			"Error while updating AvaliableTime",
+		);
 		throw err;
 	}
 };
@@ -164,8 +189,16 @@ export const deleteUnavaliableTime = async (id: number, companyId: number) => {
 			throw new ApiError("UnavaliableTime not found", 404);
 		}
 
+		log().info(
+			{ unavaliableTimeDeleted: unavaliableTimeDeleted },
+			"Delete AvaliableTime completed successfully",
+		);
 		return unavaliableTimeDeleted;
 	} catch (err) {
+		log().error(
+			{ err, id: id, companyId: companyId },
+			"Error while deleting AvaliableTime",
+		);
 		throw err;
 	}
 };

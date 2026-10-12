@@ -15,7 +15,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 		res.send(users);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -29,7 +29,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
 		res.send(user);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -44,7 +44,7 @@ export const getUserBySlugCompany = async (req: Request, res: Response) => {
 
 		res.send(user);
 	} catch (err) {
-		res.status(500).json({ error: err });
+		res.status(500).json({ err });
 	}
 };
 
@@ -69,7 +69,7 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
 	try {
-		const { name, email, password, specialty } = req.body;
+		const { name, email, password } = req.body;
 		const user = await usersBussinessServices.updateUser(Number(req.userId), {
 			name,
 			email,

@@ -1,3 +1,4 @@
+import { log } from "../../config/logger";
 import { CustomerData } from "../../interfaces/CustomerData";
 import { ApiError } from "../../utils/apiError";
 import * as customerServices from "./customer.services";
@@ -30,6 +31,10 @@ export const getAllCustomersByCompanyId = async (
 
 		return { customersExists, totalPages };
 	} catch (err) {
+		log().error(
+			{ err, page: page, limit: limit },
+			"Error while fetching customers",
+		);
 		throw err;
 	}
 };
@@ -46,6 +51,7 @@ export const getCustomerById = async (id: number, companyId: number) => {
 
 		return customerExists;
 	} catch (err) {
+		log().error({ err }, "Error while fetching customer");
 		throw err;
 	}
 };
@@ -80,8 +86,11 @@ export const createCustomer = async (data: CustomerData) => {
 
 		customerCreated = await customerServices.createCustomer(data);
 
+		log().info({ customerCreated }, "Create customer completed successfully");
+
 		return customerCreated;
 	} catch (err) {
+		log().error({ err }, "Error while creating customer");
 		throw err;
 	}
 };
@@ -108,8 +117,11 @@ export const updateCustomer = async (id: number, data: CustomerData) => {
 
 		const customerUpdated = await customerServices.updateCustomer(id, data);
 
+		log().info({ customerUpdated }, "Update customer completed successfully");
+
 		return customerUpdated;
 	} catch (err) {
+		log().error({ err }, "Error while updating customer");
 		throw err;
 	}
 };
@@ -137,8 +149,14 @@ export const deleteCustomer = async (id: number, companyId: number) => {
 
 		const customerDeleted = await customerServices.deleteCustomer(id);
 
+		log().info(
+			{ customerDeleted: customerDeleted.id },
+			"Delete customer completed successfully",
+		);
+
 		return customerDeleted;
 	} catch (err) {
+		log().error({ err }, "Error while deleting customer");
 		throw err;
 	}
 };

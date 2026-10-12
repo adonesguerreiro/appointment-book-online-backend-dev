@@ -7,6 +7,7 @@ import { passwordValid } from "../../utils/passwordValid";
 import * as userServices from "../users/users.services";
 import { UserData } from "../../interfaces/UserData";
 import { hashPassword } from "../../utils/hashPassword";
+import { log } from "../../config/logger";
 
 export const authSession = async (sessionData: SessionData) => {
 	try {
@@ -40,7 +41,7 @@ export const authSession = async (sessionData: SessionData) => {
 		const jwtToken = {
 			id,
 			companyId,
-			token: jwt.sign({ id, companyId }, authConfig.secret, {
+			token: jwt.sign({ id, companyId }, authConfig.secret as string, {
 				algorithm: "HS256",
 				allowInsecureKeySizes: true,
 			}),
@@ -55,8 +56,14 @@ export const authSession = async (sessionData: SessionData) => {
 			expiresIn: refreshConfig.expiresIn,
 		};
 
+		log().info(
+			{ userId: id, companyId: companyId },
+			"Login process completed successfully",
+		);
+
 		return { jwtToken, refreshToken };
 	} catch (err) {
+		log().error({ err, body: sessionData }, "Error during login process");
 		throw err;
 	}
 };
@@ -68,7 +75,7 @@ export const createPassword = async (data: {
 	try {
 		const { token, password } = data;
 
-		const payload = jwt.verify(token, authConfig.secret) as {
+		const payload = jwt.verify(token, authConfig.secret as string) as {
 			userId: number;
 			companyId: number;
 			type: string;
@@ -107,8 +114,16 @@ export const createPassword = async (data: {
 			throw new ApiError("Erro ao criar senha", 500);
 		}
 
+		log().info(
+			{ userId: payload.userId,
+				companyId: payload.companyId,
+			},
+			"Password created successfully",
+		);
+
 		return { message: "Senha criada com sucesso" };
 	} catch (err) {
+		log().error({ err, body: data }, "Error during password creation process");
 		throw err;
 	}
 };
@@ -125,7 +140,7 @@ export const refreshSession = async (refreshToken: string) => {
 			companyId: decoded.companyId,
 			token: jwt.sign(
 				{ id: decoded.id, companyId: decoded.companyId },
-				authConfig.secret,
+				authConfig.secret as string,
 				{
 					algorithm: "HS256",
 					allowInsecureKeySizes: true,
@@ -135,8 +150,19 @@ export const refreshSession = async (refreshToken: string) => {
 			refreshToken: refreshToken,
 		};
 
+		log().info(
+			{ userId: decoded.id,
+				companyId: decoded.companyId,
+			},
+			"Refresh token processed successfully",
+		);
+
 		return newAccessToken;
 	} catch (err) {
+		log().error(
+			{ err, body: refreshToken },
+			"Error during refresh token processing",
+		);
 		throw new ApiError("Refresh token inválido", 401);
 	}
 };
