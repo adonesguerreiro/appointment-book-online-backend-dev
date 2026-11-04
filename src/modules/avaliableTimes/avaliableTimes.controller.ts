@@ -68,10 +68,7 @@ export const createAvaliableTime = async (req: Request, res: Response) => {
 			throw new Error("AvaliableTime not found");
 		}
 
-		res.send({
-			avaliableCreated,
-			avaliableTimeSlotCreated: avaliableCreated,
-		});
+		res.send(avaliableCreated);
 	} catch (err) {
 		const yupHandled = handleYupError(err, res);
 		if (yupHandled) return;

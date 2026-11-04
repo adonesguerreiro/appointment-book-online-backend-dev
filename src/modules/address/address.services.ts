@@ -9,7 +9,13 @@ export const findAllAddresses = async (skip: number, limit: number) => {
 	});
 };
 
-export const findAddressById = async (companyId: number) => {
+export const findAddressById = async (id: number, companyId: number) => {
+	return await prisma.address.findFirst({
+		where: { id, companyId, deletedAt: null },
+	});
+};
+
+export const findAddressByCompanyId = async (companyId: number) => {
 	return await prisma.address.findFirst({
 		where: { companyId, deletedAt: null },
 	});

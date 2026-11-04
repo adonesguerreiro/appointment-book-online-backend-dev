@@ -23,7 +23,7 @@ import * as avaliableTimesControllers from "./modules/avaliableTimes/avaliableTi
 import * as unavaliableTimesControllers from "./modules/unavaliableTimes/unavaliableTimes.controller";
 import * as uploadAvatarControllers from "./modules/uploadAvatar/uploadAvatar.controller";
 import * as bookingControllers from "./modules/booking/booking.controller";
-import * as avaliableTimesSlotsControllers from "./modules/timeSlots/timeSlots.controller";
+import * as availabilityController from "./modules/availability/availability.controller";
 import { upload } from "./middlewares/upload";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
@@ -33,6 +33,11 @@ import requestId from "./middlewares/requestId";
 import { prisma } from "./config/prisma";
 
 dotenv.config();
+
+if (!process.env.DATABASE_URL) {
+	console.error("DATABASE_URL não está definida!");
+	process.exit(1);
+}
 
 const app: Express = express();
 Sentry.setupExpressErrorHandler(app);
@@ -167,10 +172,10 @@ app.post("/customers", customersControllers.createCustomer);
 app.put("/customers/:id", customersControllers.updateCustomer);
 app.delete("/customers/:id", customersControllers.deleteCustomer);
 
-// Horários por data
+// Horários disponíveis numa data
 app.get(
 	"/avaliable-times/:date",
-	avaliableTimesSlotsControllers.getTimeSlotsByDayAndCompanyId,
+	availabilityController.getAvailableSlotsForDate,
 );
 
 // Horário disponível

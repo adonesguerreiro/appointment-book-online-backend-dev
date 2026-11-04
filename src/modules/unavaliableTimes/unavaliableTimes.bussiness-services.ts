@@ -182,6 +182,13 @@ export const updateUnavaliableTime = async (
 
 export const deleteUnavaliableTime = async (id: number, companyId: number) => {
 	try {
+		const existingUnavaliableTime =
+			await unavaliableTimesServices.findUnavaliableTimeById(id, companyId);
+
+		if (!existingUnavaliableTime) {
+			throw new ApiError("UnavaliableTime not found", 404);
+		}
+
 		const unavaliableTimeDeleted =
 			await unavaliableTimesServices.deleteUnavaliableTime(id);
 

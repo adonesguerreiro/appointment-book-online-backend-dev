@@ -10,7 +10,7 @@ export const getAllAddresses = async (req: Request, res: Response) => {
 
 		const addresses = await addressesBussinessServices.getAllAddresses(
 			page,
-			limit
+			limit,
 		);
 
 		if (!addresses) {
@@ -26,7 +26,8 @@ export const getAllAddresses = async (req: Request, res: Response) => {
 export const getAddressById = async (req: Request, res: Response) => {
 	try {
 		const address = await addressesBussinessServices.getAddressById(
-			Number(req.companyId)
+			Number(req.params.id),
+			Number(req.companyId),
 		);
 
 		if (!address) {
@@ -52,14 +53,14 @@ export const createAddress = async (req: Request, res: Response) => {
 			postalCode,
 		} = req.body;
 
-		const findAdress = await addressesBussinessServices.getAddressById(
-			Number(req.companyId)
+		const findAdress = await addressesBussinessServices.getAddressByCompanyId(
+			Number(req.companyId),
 		);
 
 		if (findAdress) {
 			throw new ApiError(
 				"Já existe um endereço cadastrado para esta empresa",
-				400
+				400,
 			);
 		}
 
@@ -74,7 +75,7 @@ export const createAddress = async (req: Request, res: Response) => {
 				state,
 				postalCode,
 				companyId: Number(req.companyId),
-			}
+			},
 		);
 
 		if (findAddressData) {

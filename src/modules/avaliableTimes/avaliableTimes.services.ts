@@ -39,13 +39,6 @@ export const findAvaliableTimesByDayAndCompanyId = async (
 			day: day as DayWeek,
 			deletedAt: null,
 		},
-		include: {
-			avaliableTimeSlot: {
-				orderBy: {
-					timeSlot: "asc",
-				},
-			},
-		},
 		skip: skip,
 		take: limit,
 	});
@@ -118,35 +111,6 @@ export const updateAvaliableTime = async (
 		where: { id },
 		data,
 	});
-};
-
-export const createOrUpdateAvaliableTimeSlot = async (
-	avaliableTimeSlot: string[],
-	avaliableCreated: any,
-	companyId: number,
-) => {
-	for (const time of avaliableTimeSlot) {
-		await prisma.avaliableTimeSlot.upsert({
-			where: {
-				timeSlot_avaliableTimeId_companyId: {
-					timeSlot: time,
-					avaliableTimeId: Number(avaliableCreated.id),
-					companyId,
-				},
-			},
-			update: {
-				timeSlot: time,
-			},
-			create: {
-				timeSlot: time,
-				avaliableTimeId: Number(avaliableCreated.id),
-				companyId,
-				updatedAt: new Date(),
-			},
-		});
-	}
-
-	return { avaliableTimeSlot };
 };
 
 export const deleteAvaliableTime = async (id: number) => {

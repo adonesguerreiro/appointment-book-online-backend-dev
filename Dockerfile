@@ -19,13 +19,7 @@ RUN npx prisma generate
 # Copia o restante do código da aplicação
 COPY . .
 
-# Copia o script de entrada (ao invés de criar inline)
-COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
-
 # Exponha a porta padrão
 EXPOSE 3000
 
-# Script de entrada + comando
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]

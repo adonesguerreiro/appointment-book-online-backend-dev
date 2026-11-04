@@ -15,9 +15,22 @@ export const getAllAddresses = async (page: number, limit: number) => {
 	}
 };
 
-export const getAddressById = async (companyId: number) => {
+export const getAddressById = async (id: number, companyId: number) => {
 	try {
-		const address = await addressesServices.findAddressById(companyId);
+		const address = await addressesServices.findAddressById(id, companyId);
+		if (!address) {
+			throw new Error("Address not found");
+		}
+
+		return address;
+	} catch (err) {
+		throw err;
+	}
+};
+
+export const getAddressByCompanyId = async (companyId: number) => {
+	try {
+		const address = await addressesServices.findAddressByCompanyId(companyId);
 		if (!address) {
 			throw new Error("Address not found");
 		}
@@ -32,7 +45,7 @@ export const getAddressFindData = async (findAddress: AddressData) => {
 	try {
 		const { id, companyId, ...data } = findAddress;
 		const address = await addressesServices.findAddressByData(
-			data as AddressData
+			data as AddressData,
 		);
 
 		if (!address) {
@@ -60,6 +73,15 @@ export const createAddress = async (createData: AddressData) => {
 
 export const updateAddress = async (updateData: AddressData) => {
 	try {
+		const existingAddress = await addressesServices.findAddressById(
+			updateData.id,
+			updateData.companyId,
+		);
+
+		if (!existingAddress) {
+			throw new Error("Address not found");
+		}
+
 		const address = await addressesServices.updateAddress(updateData);
 		if (!address) {
 			throw new Error("Address not updated");

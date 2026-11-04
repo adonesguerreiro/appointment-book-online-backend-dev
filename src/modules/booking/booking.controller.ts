@@ -4,21 +4,16 @@ import * as bookingServices from "./booking.services";
 import * as customerServices from "../customer/customer.services";
 import * as servicesBussinessServices from "../services/services-business.services";
 import dayjs from "dayjs";
-import * as scheduleBussinessServices from "../schedule/schedule.business-services";
 import { bookAppointmentSchema } from "../../schemas/bookAppointmentSchema";
-import * as timeSlotsBusinessServices from "../timeSlots/timeSlots.business-services";
+import * as availabilityBusinessService from "../availability/availability.business-service";
+import * as userServices from "../users/users.services";
+import { ApiError } from "../../utils/apiError";
 
 export const getAllTimeSlotBySlugCompany = async (
 	req: Request,
 	res: Response,
 ) => {
 	try {
-		const page = Math.max(1, parseInt(req.query.page as string) || 1);
-		const limit = Math.min(
-			100,
-			Math.max(1, parseInt(req.query.limit as string) || 10),
-		);
-
 		const { slugCompany } = req.params;
 		const { date } = req.query;
 
@@ -32,13 +27,6 @@ export const getAllTimeSlotBySlugCompany = async (
 			return res.status(404).send({ message: "Date is not found" });
 		}
 
-		const startTimeDate = dayjs(date as string)
-			.startOf("day")
-			.toDate();
-		const endTimeDate = dayjs(date as string)
-			.endOf("day")
-			.toDate();
-
 		const findCompanyBySlug =
 			await bookingServices.findSlugCompanyByName(slugCompany);
 
@@ -46,17 +34,20 @@ export const getAllTimeSlotBySlugCompany = async (
 			return res.status(404).send({ message: "Company not found" });
 		}
 
-		const timeSlot = await bookingBusinessService.getAllTimeSlotByCompanyId(
-			slugCompany,
-			Number(findCompanyBySlug!.id),
-			formattedDate,
-			startTimeDate,
-			endTimeDate,
-			page,
-			limit,
+		const findUserById = await userServices.findUserById(
+			Number(findCompanyBySlug.id),
 		);
 
-		res.send(timeSlot.timeSlots);
+		if (!findUserById) {
+			return res.status(404).send({ message: "User not found" });
+		}
+
+		const slots = await availabilityBusinessService.getAvailableSlotsForDate(
+			Number(findCompanyBySlug.id),
+			formattedDate,
+		);
+
+		res.send({ slots, user: findUserById.blocked });
 	} catch (err) {
 		res.status(500).json({ err });
 	}
@@ -110,15 +101,10 @@ export const createBooking = async (req: Request, res: Response) => {
 			return res.status(404).send({ message: "Service not found" });
 		}
 
-		const timeSlotExists =
-			await timeSlotsBusinessServices.getTimeSlotByCompanyId(
-				time,
-				Number(companyBySlug.id),
-			);
-
-		if (!timeSlotExists) {
-			return res.status(404).send({ message: "Time slot not found" });
-		}
+		await availabilityBusinessService.isSlotAvailable(
+			Number(companyBySlug.id),
+			date,
+		);
 
 		const booking = await bookingBusinessService.createBooking({
 			customerId: customerCreated.id,
@@ -131,12 +117,13 @@ export const createBooking = async (req: Request, res: Response) => {
 			duration: serviceExists.duration,
 			price: serviceExists.price.toNumber(),
 			status: "SCHEDULED",
-			timeSlotId: Number(timeSlotExists),
 		});
 
 		res.send(booking);
 	} catch (err) {
-		console.error(err);
+		if (err instanceof ApiError) {
+			return res.status(err.statusCode).json({ message: err.message });
+		}
 		res.status(500).json({ err });
 	}
 };

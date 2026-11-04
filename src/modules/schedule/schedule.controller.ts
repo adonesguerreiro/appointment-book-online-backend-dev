@@ -1,15 +1,11 @@
 import { scheduleSchema } from "../../schemas/scheduleSchema";
 import { handleYupError } from "../../utils/handleYupError";
 import * as scheduleBussinessServices from "./schedule.business-services";
-import * as scheduleServices from "./schedule.services";
 import * as customerServices from "../customer/customer.services";
 import * as services from "../services/services";
 import { Request, Response } from "express";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import * as timeSlotsBusinessServices from "../timeSlots/timeSlots.business-services";
-
-dayjs.extend(utc);
+import * as availabilityBusinessService from "../availability/availability.business-service";
+import { ApiError } from "../../utils/apiError";
 
 export const getAllSchedulesByCompanyId = async (
 	req: Request,
@@ -72,38 +68,6 @@ export const createSchedule = async (req: Request, res: Response) => {
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
-		let unavaliableExists = await scheduleServices.findUnavaliableTimeByDate(
-			date,
-			Number(req.companyId),
-		);
-
-		let startOfDayDate =
-			dayjs
-				.utc(`${date.split("T")[0]}T${unavaliableExists?.startTime}:00`)
-				.toDate() || null;
-		let endOfDayDate = dayjs
-			.utc(`${date.split("T")[0]}T${unavaliableExists?.endTime}:00`)
-			.toDate();
-
-		if (isNaN(startOfDayDate.getTime()) || isNaN(endOfDayDate.getTime())) {
-			startOfDayDate = new Date(0);
-			endOfDayDate = new Date(0);
-		}
-
-		const existingScheduleTime =
-			await scheduleBussinessServices.getScheduleTimeUnavaliable(
-				startOfDayDate,
-				endOfDayDate,
-				Number(req.companyId),
-			);
-
-		if (existingScheduleTime) {
-			return res.status(400).json({
-				message:
-					"Já existe horário indisponível para este período, não será possível agendar.",
-			});
-		}
-
 		const customerIdExists = await customerServices.findCustomerById(
 			Number(customerId),
 			Number(req.companyId),
@@ -126,19 +90,12 @@ export const createSchedule = async (req: Request, res: Response) => {
 			});
 		}
 
-		const timeSlotIdExists =
-			await timeSlotsBusinessServices.getTimeSlotByCompanyId(
-				timeSlotAvaliable,
-				Number(req.companyId),
-			);
-
-		if (!timeSlotIdExists) {
-			return res.status(400).json({
-				message: "Este intervalo de tempo não existe.",
-			});
-		}
-
 		const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
+
+		await availabilityBusinessService.isSlotAvailable(
+			Number(req.companyId),
+			formattedDate,
+		);
 
 		const scheduleCreated = await scheduleBussinessServices.createSchedule({
 			customerId: customerIdExists.id,
@@ -148,7 +105,6 @@ export const createSchedule = async (req: Request, res: Response) => {
 			serviceName: serviceIdExists.serviceName,
 			duration: serviceIdExists.duration,
 			price: serviceIdExists.price.toNumber(),
-			timeSlotId: timeSlotIdExists.id,
 			date: formattedDate,
 			status,
 			companyId: Number(req.companyId),
@@ -157,8 +113,11 @@ export const createSchedule = async (req: Request, res: Response) => {
 		res.send(scheduleCreated);
 	} catch (err) {
 		const yupHandled = handleYupError(err, res);
-		console.error(err);
 		if (yupHandled) return;
+
+		if (err instanceof ApiError) {
+			return res.status(err.statusCode).json({ message: err.message });
+		}
 
 		res.status(500).json({ err });
 	}
@@ -170,23 +129,6 @@ export const updateSchedule = async (req: Request, res: Response) => {
 	try {
 		await scheduleSchema.validate(req.body, { abortEarly: false });
 
-		const startOfDayDate = date.split("T")[0] + `T00:00:00.000Z`;
-		const endOfDayDate = date.split("T")[0] + `T23:59:59.000Z`;
-
-		const existingScheduleTime =
-			await scheduleBussinessServices.getScheduleTimeUnavaliable(
-				new Date(startOfDayDate),
-				new Date(endOfDayDate),
-				Number(req.companyId),
-			);
-
-		if (existingScheduleTime) {
-			return res.status(400).json({
-				message:
-					"Já existe horário indisponível para este período, não será possível agendar.",
-			});
-		}
-
 		const customerIdExists = await customerServices.findCustomerById(
 			Number(customerId),
 			Number(req.companyId),
@@ -209,19 +151,13 @@ export const updateSchedule = async (req: Request, res: Response) => {
 			});
 		}
 
-		const timeSlotIdExists =
-			await timeSlotsBusinessServices.getTimeSlotByCompanyId(
-				timeSlotAvaliable,
-				Number(req.companyId),
-			);
-
-		if (!timeSlotIdExists) {
-			return res.status(400).json({
-				message: "Este intervalo de tempo não existe.",
-			});
-		}
-
 		const formattedDate = date.split("T")[0] + `T${timeSlotAvaliable}:00.000Z`;
+
+		await availabilityBusinessService.isSlotAvailable(
+			Number(req.companyId),
+			formattedDate,
+			Number(req.params.id),
+		);
 
 		const scheduleUpdated = await scheduleBussinessServices.updateSchedule(
 			Number(req.params.id),
@@ -233,7 +169,6 @@ export const updateSchedule = async (req: Request, res: Response) => {
 				serviceName: serviceIdExists.serviceName,
 				duration: serviceIdExists.duration,
 				price: serviceIdExists.price.toNumber(),
-				timeSlotId: timeSlotIdExists.id,
 				date: formattedDate,
 				status,
 				companyId: Number(req.companyId),
@@ -243,8 +178,11 @@ export const updateSchedule = async (req: Request, res: Response) => {
 		res.send(scheduleUpdated);
 	} catch (err) {
 		const yupHandled = handleYupError(err, res);
-		console.error(err);
 		if (yupHandled) return;
+
+		if (err instanceof ApiError) {
+			return res.status(err.statusCode).json({ message: err.message });
+		}
 
 		res.status(500).json({ err });
 	}

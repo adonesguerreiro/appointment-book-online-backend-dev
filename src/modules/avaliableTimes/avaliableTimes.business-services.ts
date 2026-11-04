@@ -3,7 +3,6 @@ import { ApiError } from "../../utils/apiError";
 import * as avaliableTimesServices from "./avaliableTimes.services";
 import { dateConvertDay } from "../../utils/dateConvertDay";
 import { AvailableTimeData } from "../../interfaces/AvailableTimeData";
-import { generateAvaliableTimes } from "../../utils/generateAvaliableTimes";
 import { log } from "../../config/logger";
 
 export const getAllAvaliableTimesByCompany = async (
@@ -120,33 +119,12 @@ export const createAvaliableTime = async (data: AvailableTimeData) => {
 		const avaliableTimeCreated =
 			await avaliableTimesServices.createAvaliableTime(data);
 
-		const avaliableTimeSlotCreated = await generateAvaliableTimes(
-			data.startTime,
-			data.endTime,
-			data.interval,
-			data.companyId,
-		);
-
-		const timeSlotCreated =
-			await avaliableTimesServices.createOrUpdateAvaliableTimeSlot(
-				avaliableTimeSlotCreated,
-				avaliableTimeCreated,
-				data.companyId,
-			);
-
-		if (!timeSlotCreated) {
-			throw new Error("AvaliableTimeSlot not found");
-		}
-
 		log().info(
-			{
-				avaliableTimeCreated: avaliableTimeCreated.id,
-				avaliableTimeSlotCreated: timeSlotCreated,
-			},
+			{ avaliableTimeCreated: avaliableTimeCreated.id },
 			"Create available time process completed successfully",
 		);
 
-		return { avaliableTimeCreated, avaliableTimeSlotCreated: timeSlotCreated };
+		return avaliableTimeCreated;
 	} catch (err) {
 		log().error(
 			{ err, avaliableTimeData: data },
@@ -201,30 +179,8 @@ export const updateAvaliableTime = async (
 		const avaliableTimeUpdated =
 			await avaliableTimesServices.updateAvaliableTime(id, data);
 
-		const availableTimeSlotUpdated = await generateAvaliableTimes(
-			data.startTime,
-			data.endTime,
-			data.interval!,
-			data.companyId,
-		);
-
-		const timeSlotUpdated =
-			await avaliableTimesServices.createOrUpdateAvaliableTimeSlot(
-				availableTimeSlotUpdated,
-				avaliableTimeUpdated,
-				data.companyId,
-			);
-
-		if (!timeSlotUpdated) {
-			throw new Error("AvaliableTimeSlot not found");
-		}
-
 		log().info(
-			{
-				avaliableTimeId: id,
-				avaliableTimeUpdated: avaliableTimeUpdated.id,
-				avaliableTimeSlotUpdated: timeSlotUpdated,
-			},
+			{ avaliableTimeId: id, avaliableTimeUpdated: avaliableTimeUpdated.id },
 			"Update available time process completed successfully",
 		);
 

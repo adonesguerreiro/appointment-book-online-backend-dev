@@ -60,46 +60,6 @@ export const getScheduleById = async (id: number, companyId: number) => {
 	}
 };
 
-export const getScheduleTimeUnavaliable = async (
-	startOfDayDate: Date,
-	endOfDayDate: Date,
-	companyId: number,
-) => {
-	try {
-		const existingScheduleTime =
-			await scheduleServices.findScheduleTimeUnavaliable(
-				startOfDayDate,
-				endOfDayDate,
-				companyId,
-			);
-
-		if (existingScheduleTime) {
-			throw new ApiError(
-				"Já existe horário indisponível para este período, não será possível agendar.",
-				400,
-			);
-		}
-
-		log().info(
-			{ existingScheduleTime: existingScheduleTime },
-			"Get schedule time unavaliable completed successfully",
-		);
-
-		return existingScheduleTime;
-	} catch (err) {
-		log().error(
-			{
-				err,
-				startOfDayDate: startOfDayDate,
-				endOfDayDate: endOfDayDate,
-				companyId: companyId,
-			},
-			"Error while fetching schedule time unavaliable",
-		);
-		throw err;
-	}
-};
-
 export const createSchedule = async (data: ScheduleData) => {
 	try {
 		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
@@ -128,6 +88,15 @@ export const createSchedule = async (data: ScheduleData) => {
 
 export const updateSchedule = async (id: number, data: ScheduleData) => {
 	try {
+		const existingSchedule = await scheduleServices.findScheduleById(
+			id,
+			data.companyId,
+		);
+
+		if (!existingSchedule) {
+			throw new ApiError("Agendamento não encontrado", 404);
+		}
+
 		const scheduleExists = await scheduleServices.findScheduleByDateAndStatus(
 			data.date,
 			data.status,
